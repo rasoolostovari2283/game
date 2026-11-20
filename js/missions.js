@@ -134,6 +134,8 @@ class MissionManager {
       maxSpeed: currentRunStats.maxSpeed || 0,
       oncomingTime: currentRunStats.oncomingTime || 0,
       sessionCoins: currentRunStats.sessionCoins || 0,
+      sessionHacks: currentRunStats.sessionHacks || 0,
+      slowmoTime: currentRunStats.slowmoTime || 0,
       lifetimeDist: this.lifetimeStats.lifetimeDist + (currentRunStats.distance || 0),
       nitroTimeUsed: this.lifetimeStats.nitroTimeUsed + (currentRunStats.nitroTime || 0)
     };

@@ -116,6 +116,94 @@ const SPRITE_SOURCES = {
 };
 
 const CAR_PROCESSED_SPRITES = {};
+window.CAR_SPRITES = CAR_PROCESSED_SPRITES;
+
+const UNDERGLOW_CACHE = {};
+const TINTED_SPRITE_CACHE = {};
+let HEADLIGHT_BEAM_CACHE = null;
+
+function getHeadlightBeamSprite() {
+  if (HEADLIGHT_BEAM_CACHE) return HEADLIGHT_BEAM_CACHE;
+  const c = document.createElement('canvas');
+  c.width = 160;
+  c.height = 240;
+  const gctx = c.getContext('2d');
+
+  const drawCone = (originX) => {
+    const grad = gctx.createRadialGradient(originX, 232, 4, originX, 118, 128);
+    grad.addColorStop(0, 'rgba(215, 250, 255, 0.36)');
+    grad.addColorStop(0.45, 'rgba(130, 225, 255, 0.14)');
+    grad.addColorStop(1, 'rgba(0, 200, 255, 0)');
+    gctx.fillStyle = grad;
+    gctx.beginPath();
+    gctx.moveTo(originX - 8, 236);
+    gctx.lineTo(originX - 58, 0);
+    gctx.lineTo(originX + 58, 0);
+    gctx.lineTo(originX + 8, 236);
+    gctx.closePath();
+    gctx.fill();
+  };
+
+  drawCone(54);
+  drawCone(106);
+
+  HEADLIGHT_BEAM_CACHE = c;
+  return c;
+}
+
+function getUnderglowSprite(color) {
+  if (!color || color === 'none') return null;
+  if (UNDERGLOW_CACHE[color]) return UNDERGLOW_CACHE[color];
+
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 224;
+  const gctx = c.getContext('2d');
+
+  gctx.save();
+  gctx.translate(64, 112);
+  gctx.scale(1, 1.75);
+  const grad = gctx.createRadialGradient(0, 0, 14, 0, 0, 62);
+  grad.addColorStop(0, color);
+  grad.addColorStop(0.55, color);
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  gctx.globalAlpha = 0.42;
+  gctx.fillStyle = grad;
+  gctx.beginPath();
+  gctx.arc(0, 0, 62, 0, Math.PI * 2);
+  gctx.fill();
+  gctx.restore();
+
+  UNDERGLOW_CACHE[color] = c;
+  return c;
+}
+
+function getTintedCarSprite(key, baseSprite, color, defaultColor) {
+  if (!baseSprite || !color || !defaultColor || color.toLowerCase() === defaultColor.toLowerCase()) {
+    return baseSprite;
+  }
+  const cacheKey = `${key}_${color.toLowerCase()}`;
+  if (TINTED_SPRITE_CACHE[cacheKey]) return TINTED_SPRITE_CACHE[cacheKey];
+
+  const c = document.createElement('canvas');
+  c.width = baseSprite.width || 128;
+  c.height = baseSprite.height || 256;
+  const tctx = c.getContext('2d');
+
+  tctx.drawImage(baseSprite, 0, 0, c.width, c.height);
+
+  // Subtle color-blend tint masked strictly to the car's alpha silhouette
+  tctx.globalCompositeOperation = 'source-atop';
+  tctx.globalAlpha = 0.42;
+  tctx.fillStyle = color;
+  tctx.fillRect(0, 0, c.width, c.height);
+
+  tctx.globalCompositeOperation = 'source-over';
+  tctx.globalAlpha = 1;
+
+  TINTED_SPRITE_CACHE[cacheKey] = c;
+  return c;
+}
 
 function initCarSprites() {
   for (const [key, src] of Object.entries(SPRITE_SOURCES)) {
@@ -123,35 +211,56 @@ function initCarSprites() {
     img.src = src;
     img.onload = () => {
       try {
-        const off = document.createElement('canvas');
-        off.width = img.width;
-        off.height = img.height;
-        const octx = off.getContext('2d');
-        octx.drawImage(img, 0, 0);
+        // 1. Downscale source to 384px max dimension first for fast CPU chroma-keying
+        const maxDim = 384;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const workW = Math.max(32, Math.round(img.width * scale));
+        const workH = Math.max(32, Math.round(img.height * scale));
 
-        const imgData = octx.getImageData(0, 0, off.width, off.height);
+        const off = document.createElement('canvas');
+        off.width = workW;
+        off.height = workH;
+        const octx = off.getContext('2d', { willReadFrequently: true });
+        octx.drawImage(img, 0, 0, workW, workH);
+
+        const imgData = octx.getImageData(0, 0, workW, workH);
         const data = imgData.data;
-        // Key out solid black studio background
+
+        // 2. Smoothly key out solid black studio background
         for (let i = 0; i < data.length; i += 4) {
-          const maxVal = Math.max(data[i], data[i + 1], data[i + 2]);
-          if (maxVal < 26) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const maxVal = Math.max(r, g, b);
+          if (maxVal < 22) {
             data[i + 3] = 0;
-          } else if (maxVal < 48) {
-            data[i + 3] = Math.floor(((maxVal - 26) / 22) * 255);
+          } else if (maxVal < 52) {
+            data[i + 3] = Math.floor(((maxVal - 22) / 30) * 255);
           }
         }
         octx.putImageData(imgData, 0, 0);
 
-        // Pre-downscale to 160x320 for 60 FPS GPU-friendly rendering
-        const targetW = 160;
-        const targetH = 320;
+        // 3. Auto-crop transparent padding so car fills hitbox cleanly with zero boxy margins
+        const bounds = window.SimUtils
+          ? window.SimUtils.findAlphaBounds(data, workW, workH, 28)
+          : { x: 0, y: 0, width: workW, height: workH, empty: false };
+
+        const pad = 2;
+        const sx = Math.max(0, bounds.x - pad);
+        const sy = Math.max(0, bounds.y - pad);
+        const sw = Math.min(workW - sx, bounds.width + pad * 2);
+        const sh = Math.min(workH - sy, bounds.height + pad * 2);
+
+        // 4. Pack tightly into GPU-friendly 128x256 texture
+        const targetW = 128;
+        const targetH = 256;
         const optCanvas = document.createElement('canvas');
         optCanvas.width = targetW;
         optCanvas.height = targetH;
         const optCtx = optCanvas.getContext('2d');
         optCtx.imageSmoothingEnabled = true;
         optCtx.imageSmoothingQuality = 'high';
-        optCtx.drawImage(off, 0, 0, targetW, targetH);
+        optCtx.drawImage(off, sx, sy, sw, sh, 0, 0, targetW, targetH);
 
         CAR_PROCESSED_SPRITES[key] = optCanvas;
       } catch (e) {
@@ -327,7 +436,7 @@ class CarManager {
   }
 }
 
-// AI-Powered Realistic Vehicle Renderer (Top-Down AI Sprites + Dynamic Lighting & FX)
+// High-Performance Realistic Vehicle Renderer (Auto-Cropped Sprites + Cached FX)
 function drawCar(ctx, x, y, width, length, color, options = {}) {
   const {
     underglow = '#00f2ff',
@@ -339,7 +448,10 @@ function drawCar(ctx, x, y, width, length, color, options = {}) {
     steerAngle = 0,
     isPolice = false,
     policeStrobe = 0,
-    health = 100
+    health = 100,
+    defaultColor = null,
+    turnSignal = 0,
+    lowSpec = false
   } = options;
 
   ctx.save();
@@ -348,71 +460,32 @@ function drawCar(ctx, x, y, width, length, color, options = {}) {
     ctx.rotate(steerAngle);
   }
 
-  const halfW = width / 2;
-  const halfL = length / 2;
+  const halfW = width * 0.5;
+  const halfL = length * 0.5;
 
-  // 0. Ambient Drop Shadow (Zero blur, crisp layered alpha)
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  // 0. Sleek Elliptical Ground Shadow (Matches car silhouette, zero blocky box)
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.52)';
   ctx.beginPath();
-  ctx.roundRect(-halfW - 2, -halfL + 2, width + 4, length + 4, 8);
+  ctx.ellipse(0, 4, halfW * 0.94, halfL * 0.98, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.beginPath();
-  ctx.roundRect(-halfW, -halfL + 4, width, length, 6);
-  ctx.fill();
-  ctx.restore();
 
-  // 1. Neon Underglow (High-performance layered halo)
+  // 1. Soft Elliptical Neon Underglow (Pre-rendered sprite cache — 1 drawImage call!)
   if (underglow && underglow !== 'none') {
-    ctx.save();
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = underglow;
-    ctx.beginPath();
-    ctx.roundRect(-halfW - 5, -halfL - 2, width + 10, length + 4, 14);
-    ctx.fill();
-    ctx.globalAlpha = 0.45;
-    ctx.beginPath();
-    ctx.roundRect(-halfW - 2, -halfL + 1, width + 4, length - 2, 10);
-    ctx.fill();
-    ctx.restore();
+    const glowSprite = getUnderglowSprite(underglow);
+    if (glowSprite) {
+      ctx.drawImage(glowSprite, -halfW - 14, -halfL - 12, width + 28, length + 24);
+    }
   }
 
-  // 2. Headlights Light Cones
-  if (headlights) {
-    ctx.save();
-    const beamL = 260;
-    const beamW = 85;
-
-    let gradL = ctx.createRadialGradient(-halfW + 7, -halfL, 6, -halfW - 10, -halfL - beamL, beamW);
-    gradL.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
-    gradL.addColorStop(0.25, 'rgba(210, 245, 255, 0.35)');
-    gradL.addColorStop(1, 'rgba(0, 242, 255, 0)');
-    ctx.fillStyle = gradL;
-    ctx.beginPath();
-    ctx.moveTo(-halfW + 3, -halfL + 2);
-    ctx.lineTo(-halfW + 12, -halfL + 2);
-    ctx.lineTo(-halfW + 15 - beamW / 2, -halfL - beamL);
-    ctx.lineTo(-halfW - beamW / 2, -halfL - beamL);
-    ctx.closePath();
-    ctx.fill();
-
-    let gradR = ctx.createRadialGradient(halfW - 7, -halfL, 6, halfW + 10, -halfL - beamL, beamW);
-    gradR.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
-    gradR.addColorStop(0.25, 'rgba(210, 245, 255, 0.35)');
-    gradR.addColorStop(1, 'rgba(0, 242, 255, 0)');
-    ctx.fillStyle = gradR;
-    ctx.beginPath();
-    ctx.moveTo(halfW - 12, -halfL + 2);
-    ctx.lineTo(halfW - 3, -halfL + 2);
-    ctx.lineTo(halfW + beamW / 2, -halfL - beamL);
-    ctx.lineTo(halfW - 15 + beamW / 2, -halfL - beamL);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+  // 2. Cached Volumetric Headlight Cones (Zero per-frame radial gradient allocation!)
+  if (headlights && !lowSpec) {
+    const beam = getHeadlightBeamSprite();
+    const beamW = width * 3.1;
+    const beamH = 235;
+    ctx.drawImage(beam, -beamW * 0.5, -halfL - beamH + 8, beamW, beamH);
   }
 
-  // 3. Resolve AI Sprite Key
+  // 3. Resolve AI Sprite Key & Apply Custom Paint Tint if selected
   let resolvedKey = spriteKey || style || 'cyber_hatch';
   if (resolvedKey === 'hatchback') resolvedKey = 'cyber_hatch';
   else if (resolvedKey === 'muscle') resolvedKey = 'muscle_gt';
@@ -423,141 +496,115 @@ function drawCar(ctx, x, y, width, length, color, options = {}) {
   else if (resolvedKey === 'suv') resolvedKey = 'traffic_suv';
   else if (resolvedKey === 'truck') resolvedKey = 'traffic_truck';
 
-  const sprite = CAR_PROCESSED_SPRITES[resolvedKey];
+  const rawSprite = CAR_PROCESSED_SPRITES[resolvedKey];
+  const sprite = rawSprite ? getTintedCarSprite(resolvedKey, rawSprite, color, defaultColor) : null;
 
   if (sprite && (sprite.complete === undefined || sprite.complete || sprite instanceof HTMLCanvasElement)) {
-    // High-Definition AI Sprite Render (Optimized 160x320)
     ctx.drawImage(sprite, -halfW, -halfL, width, length);
   } else {
-    // Procedural Fallback Chassis while asset is preloading
-    ctx.save();
-    const bodyGrad = ctx.createLinearGradient(-halfW, 0, halfW, 0);
-    bodyGrad.addColorStop(0, adjustColor(color, -40));
-    bodyGrad.addColorStop(0.5, adjustColor(color, 30));
-    bodyGrad.addColorStop(1, adjustColor(color, -40));
-    ctx.fillStyle = bodyGrad;
+    ctx.fillStyle = color || '#00f2ff';
     ctx.beginPath();
-    ctx.roundRect(-halfW, -halfL, width, length, 8);
+    ctx.roundRect(-halfW, -halfL, width, length, 10);
     ctx.fill();
-    ctx.restore();
   }
 
-  // 4. Dynamic Headlight Bulbs Glow (Crisp layered alpha)
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 242, 255, 0.4)';
-  ctx.beginPath();
-  ctx.roundRect(-halfW + 2, -halfL - 2, 12, 7, 3);
-  ctx.roundRect(halfW - 14, -halfL - 2, 12, 7, 3);
-  ctx.fill();
+  // 4. Crisp Headlight Bulbs
+  ctx.fillStyle = 'rgba(0, 242, 255, 0.35)';
+  ctx.fillRect(-halfW + 4, -halfL - 1, 10, 5);
+  ctx.fillRect(halfW - 14, -halfL - 1, 10, 5);
   ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.roundRect(-halfW + 4, -halfL, 8, 3, 1);
-  ctx.roundRect(halfW - 12, -halfL, 8, 3, 1);
-  ctx.fill();
-  ctx.restore();
+  ctx.fillRect(-halfW + 6, -halfL, 6, 2.5);
+  ctx.fillRect(halfW - 12, -halfL, 6, 2.5);
 
   // 5. Dynamic Taillights / Brake Glow
-  ctx.save();
   if (isBraking) {
-    ctx.fillStyle = 'rgba(255, 0, 50, 0.35)';
-    ctx.beginPath();
-    ctx.roundRect(-halfW + 1, halfL - 6, 17, 10, 4);
-    ctx.roundRect(halfW - 18, halfL - 6, 17, 10, 4);
-    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 0, 50, 0.45)';
+    ctx.fillRect(-halfW + 2, halfL - 5, 14, 9);
+    ctx.fillRect(halfW - 16, halfL - 5, 14, 9);
   }
-  ctx.fillStyle = isBraking ? '#ff0033' : '#aa0015';
-  ctx.beginPath();
-  ctx.roundRect(-halfW + 4, halfL - 3, 11, 4, 1.5);
-  ctx.roundRect(halfW - 15, halfL - 3, 11, 4, 1.5);
-  ctx.fill();
-  ctx.restore();
+  ctx.fillStyle = isBraking ? '#ff1144' : '#aa0018';
+  ctx.fillRect(-halfW + 5, halfL - 3, 9, 3.5);
+  ctx.fillRect(halfW - 14, halfL - 3, 9, 3.5);
+
+  // 5b. Turn-signal amber blinker for lane-changing traffic
+  if (turnSignal !== 0 && (Math.floor(Date.now() / 160) % 2 === 0)) {
+    const bx = turnSignal < 0 ? -halfW + 1 : halfW - 6;
+    ctx.fillStyle = '#ffbb00';
+    ctx.fillRect(bx, -halfL + 4, 5, 6);
+    ctx.fillRect(bx, halfL - 10, 5, 6);
+  }
 
   // 6. Police Strobe Roof Lightbar
   if (isPolice) {
     const strobeTick = Math.floor((policeStrobe || Date.now() / 90) % 2) === 0;
-    ctx.save();
-    // Lightbar housing
+    const barY = -halfL + length * 0.42;
     ctx.fillStyle = '#111622';
-    ctx.beginPath();
-    ctx.roundRect(-16, -halfL + length * 0.42, 32, 7, 2);
-    ctx.fill();
+    ctx.fillRect(-15, barY, 30, 6);
 
-    // Blue side
     if (strobeTick) {
-      ctx.fillStyle = 'rgba(0, 229, 255, 0.4)';
-      ctx.fillRect(-18, -halfL + length * 0.42 - 2, 21, 11);
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.38)';
+      ctx.fillRect(-19, barY - 3, 21, 12);
       ctx.fillStyle = '#00e5ff';
     } else {
       ctx.fillStyle = '#0033aa';
     }
-    ctx.fillRect(-14, -halfL + length * 0.42 + 1, 13, 5);
+    ctx.fillRect(-13, barY + 1, 12, 4);
 
-    // Red side
     if (!strobeTick) {
-      ctx.fillStyle = 'rgba(255, 0, 68, 0.4)';
-      ctx.fillRect(-3, -halfL + length * 0.42 - 2, 21, 11);
+      ctx.fillStyle = 'rgba(255, 0, 68, 0.38)';
+      ctx.fillRect(-2, barY - 3, 21, 12);
       ctx.fillStyle = '#ff0044';
     } else {
       ctx.fillStyle = '#660011';
     }
-    ctx.fillRect(1, -halfL + length * 0.42 + 1, 13, 5);
-    ctx.restore();
+    ctx.fillRect(1, barY + 1, 12, 4);
   }
 
-  // 7. Nitro Jet Flames
+  // 7. Nitro Dual Jet Flames
   if (hasNitro) {
-    ctx.save();
-    // Outer flame aura
-    ctx.fillStyle = 'rgba(0, 242, 255, 0.35)';
+    const flicker = Math.random() * 10;
+    ctx.fillStyle = 'rgba(0, 242, 255, 0.42)';
     ctx.beginPath();
     ctx.moveTo(-halfW + 8, halfL);
     ctx.lineTo(-halfW + 17, halfL);
-    ctx.lineTo(-halfW + 12.5, halfL + 22 + Math.random() * 8);
+    ctx.lineTo(-halfW + 12.5, halfL + 24 + flicker);
     ctx.closePath();
     ctx.moveTo(halfW - 17, halfL);
     ctx.lineTo(halfW - 8, halfL);
-    ctx.lineTo(halfW - 12.5, halfL + 22 + Math.random() * 8);
+    ctx.lineTo(halfW - 12.5, halfL + 24 + flicker);
     ctx.closePath();
     ctx.fill();
 
-    // Inner bright core
     ctx.fillStyle = '#ff0077';
     ctx.beginPath();
     ctx.moveTo(-halfW + 10, halfL);
     ctx.lineTo(-halfW + 15, halfL);
-    ctx.lineTo(-halfW + 12.5, halfL + 14 + Math.random() * 6);
+    ctx.lineTo(-halfW + 12.5, halfL + 15 + flicker * 0.6);
     ctx.closePath();
     ctx.moveTo(halfW - 15, halfL);
     ctx.lineTo(halfW - 10, halfL);
-    ctx.lineTo(halfW - 12.5, halfL + 14 + Math.random() * 6);
+    ctx.lineTo(halfW - 12.5, halfL + 15 + flicker * 0.6);
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = '#00ffff';
-    ctx.beginPath();
-    ctx.arc(-halfW + 12.5, halfL + 4, 3, 0, Math.PI * 2);
-    ctx.arc(halfW - 12.5, halfL + 4, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-halfW + 11, halfL, 3, 5);
+    ctx.fillRect(halfW - 14, halfL, 3, 5);
   }
 
-  // 8. Damage Smoke & Engine Sparks (Low Health Visuals)
+  // 8. Low-Health Engine Smoke & Sparks
   if (health < 50) {
-    ctx.save();
-    const smokeAlpha = (50 - health) / 50;
-    ctx.fillStyle = `rgba(30, 30, 35, ${smokeAlpha * 0.4})`;
+    const smokeAlpha = ((50 - health) / 50) * 0.45;
+    ctx.fillStyle = `rgba(30, 30, 38, ${smokeAlpha})`;
     ctx.beginPath();
-    ctx.arc(0 + (Math.random() - 0.5) * 8, -halfL + 15, 6 + Math.random() * 6, 0, Math.PI * 2);
+    ctx.arc((Math.random() - 0.5) * 8, -halfL + 14, 6 + Math.random() * 5, 0, Math.PI * 2);
     ctx.fill();
 
     if (health < 25) {
-      // Fire sparks
       ctx.fillStyle = Math.random() < 0.5 ? '#ffe600' : '#ff3300';
-      for (let i = 0; i < 3; i++) {
-        ctx.fillRect(-6 + Math.random() * 12, -halfL + 8 + Math.random() * 12, 2.5, 2.5);
-      }
+      ctx.fillRect(-6 + Math.random() * 12, -halfL + 8 + Math.random() * 10, 3, 3);
+      ctx.fillRect(-6 + Math.random() * 12, -halfL + 8 + Math.random() * 10, 3, 3);
     }
-    ctx.restore();
   }
 
   ctx.restore();

@@ -67,6 +67,7 @@ class TrafficManager {
 
   update(playerSpeed, playerY, delta, heatLevel = 0, playerX = 0) {
     this.heatLevel = heatLevel;
+    const dt60 = Math.max(0.1, Math.min(2.5, delta * 60));
 
     // 1. Vehicle Spawning
     this.spawnTimer += delta;
@@ -102,35 +103,32 @@ class TrafficManager {
       this.hazardTimer = 0;
     }
 
+    // Pre-index police units once per frame instead of filtering inside the loop
+    let policeSlot = 0;
+
     // 5. Update Traffic Vehicles & Police Pursuit AI
     for (let i = this.vehicles.length - 1; i >= 0; i--) {
       const v = this.vehicles[i];
 
       // Tactical Police Pursuit AI (Separated flanking positions, no stacking)
       if (v.isPolice) {
-        const policeList = this.vehicles.filter(item => item.isPolice);
-        const policeIndex = policeList.indexOf(v);
+        const policeIndex = policeSlot++;
         const laneW = this.road.laneWidth;
         const currentRoadX = this.road.getX ? this.road.getX(v.y) : this.road.x;
         const playerLaneOffset = playerX - currentRoadX;
 
+        const preferLeft = playerLaneOffset > (this.road.width * 0.5);
         let targetOffset;
         if (policeIndex === 0) {
-          // Primary interceptor: flanks on player's left or right
-          const preferLeft = playerLaneOffset > (this.road.width * 0.5);
           targetOffset = preferLeft ? (playerLaneOffset - laneW * 0.9) : (playerLaneOffset + laneW * 0.9);
         } else {
-          // Secondary interceptor: takes the opposite flank!
-          const preferLeft = playerLaneOffset > (this.road.width * 0.5);
           targetOffset = preferLeft ? (playerLaneOffset + laneW * 0.9) : (playerLaneOffset - laneW * 0.9);
         }
 
-        // Clamp to road boundaries
         targetOffset = Math.max(0.55 * laneW, Math.min(3.45 * laneW, targetOffset));
-        v.laneOffset += (targetOffset - v.laneOffset) * 1.6 * delta;
+        v.laneOffset += (targetOffset - v.laneOffset) * Math.min(1, 1.6 * delta);
         v.lane = Math.floor(v.laneOffset / laneW);
 
-        // Speed adjustment to match player without penetrating
         if (v.y > playerY + 60) {
           v.speed = Math.max(v.speed, playerSpeed + 22);
         } else if (v.y < playerY - 180) {
@@ -145,22 +143,20 @@ class TrafficManager {
         let vehicleAhead = null;
         let closestDist = 240;
 
-        for (const other of this.vehicles) {
+        for (let j = 0; j < this.vehicles.length; j++) {
+          const other = this.vehicles[j];
           if (other === v || other.isOncoming) continue;
-          const distY = v.y - other.y; // Positive if v is behind other
-          const distX = Math.abs(v.laneOffset - other.laneOffset);
-          if (distY > 0 && distY < closestDist && distX < this.road.laneWidth * 0.75) {
+          const distY = v.y - other.y;
+          if (distY > 0 && distY < closestDist && Math.abs(v.laneOffset - other.laneOffset) < this.road.laneWidth * 0.75) {
             closestDist = distY;
             vehicleAhead = other;
           }
         }
 
         if (vehicleAhead) {
-          // Match speed of vehicle ahead and maintain buffer
           if (v.speed >= vehicleAhead.speed) {
             v.speed = Math.max(35, vehicleAhead.speed - 3);
           }
-          // Attempt to overtake into an adjacent clear lane
           if (!v.isChangingLane && v.laneChangeCooldown <= 0) {
             this.tryLaneChange(v);
           }
@@ -174,45 +170,45 @@ class TrafficManager {
         relativeSpeed = v.isPolice ? (playerSpeed - v.speed) : Math.max(14, playerSpeed - v.speed);
       }
 
-      v.y += (relativeSpeed * 0.16);
+      v.y += relativeSpeed * 0.16 * dt60;
       if (v.laneOffset === undefined) {
         v.laneOffset = (v.lane + 0.5) * this.road.laneWidth;
       }
 
       // AI Lane changing
       if (v.isHacked) {
-        // Hacked Vehicle Autopilot Override: Aggressively clear lane to the side!
         v.hackedTimer = (v.hackedTimer || 3.0) - delta;
         v.speed = Math.max(v.speed, 112);
         if (v.hackedTimer <= 0) {
           v.isHacked = false;
         } else {
-          // Rapidly push towards target lane
-          const targetOffset = (v.targetLane !== undefined ? (v.targetLane + 0.5) * this.road.laneWidth : (v.laneOffset < this.road.width * 0.5 ? 0.5 * this.road.laneWidth : 3.5 * this.road.laneWidth));
-          v.laneOffset += (targetOffset - v.laneOffset) * 4.5 * delta;
-          if (Math.random() < 0.2) {
+          const targetOffset = (v.targetLane !== undefined
+            ? (v.targetLane + 0.5) * this.road.laneWidth
+            : (v.laneOffset < this.road.width * 0.5 ? 0.5 * this.road.laneWidth : 3.5 * this.road.laneWidth));
+          v.laneOffset += (targetOffset - v.laneOffset) * Math.min(1, 4.5 * delta);
+          if (Math.random() < 0.16 * dt60) {
             window.particleSystem.addHackSparks(v.x, v.y);
           }
         }
       } else if (v.isEmpDisabled) {
-        // EMP Disabled Police: Engine stalls, sirens shorted out
         v.empTimer = (v.empTimer || 4.0) - delta;
-        v.speed = Math.max(18, v.speed * 0.94);
+        v.speed = Math.max(18, v.speed * Math.pow(0.94, dt60));
         v.policeStrobe = 0;
         if (v.empTimer <= 0) {
           v.isEmpDisabled = false;
-        } else if (Math.random() < 0.25) {
+        } else if (Math.random() < 0.2 * dt60) {
           window.particleSystem.addHackSparks(v.x, v.y, '#00f2ff');
         }
       } else if (v.laneChangeCooldown > 0) {
         v.laneChangeCooldown -= delta;
-      } else if (!v.isChangingLane && Math.random() < 0.006) {
+      } else if (!v.isChangingLane && Math.random() < 0.006 * dt60) {
         this.tryLaneChange(v);
       }
 
       if (v.isChangingLane) {
-        v.laneOffset += v.laneChangeDir * 2.2;
-        v.laneChangeProgress += 2.2;
+        const step = 2.2 * dt60;
+        v.laneOffset += v.laneChangeDir * step;
+        v.laneChangeProgress += step;
         if (v.laneChangeProgress >= this.road.laneWidth) {
           v.isChangingLane = false;
           v.lane = v.targetLane;
@@ -221,17 +217,14 @@ class TrafficManager {
         }
       }
 
-      // Compute road position
       const roadX = this.road.getX ? this.road.getX(v.y) : this.road.x;
       v.x = roadX + v.laneOffset;
-      v.steerAngle = v.isOncoming ? Math.PI : (v.isChangingLane ? v.laneChangeDir * 0.08 : 0);
+      v.steerAngle = v.isOncoming ? Math.PI : (v.isChangingLane ? v.laneChangeDir * 0.09 : 0);
 
-      // Blinkers / Strobes
       if (v.isPolice) {
         v.policeStrobe = (v.policeStrobe || 0) + delta * 9;
       }
 
-      // Despawn if far behind or far ahead
       if (v.y > playerY + 1200 || v.y < playerY - 2000) {
         this.vehicles.splice(i, 1);
       }
@@ -249,11 +242,9 @@ class TrafficManager {
         const minDistY = (v1.length + v2.length) * 0.5 + 18;
 
         if (Math.abs(dx) < minDistX && Math.abs(dy) < minDistY) {
-          // Collision / Overlap detected! Push apart firmly
           const overlapX = minDistX - Math.abs(dx);
           const overlapY = minDistY - Math.abs(dy);
 
-          // Lateral repulsion
           const pushDirX = dx >= 0 ? 1 : -1;
           const pushX = (overlapX * 0.5 + 1) * pushDirX;
           v1.laneOffset += pushX * 0.6;
@@ -261,13 +252,12 @@ class TrafficManager {
           v1.x += pushX * 0.6;
           v2.x -= pushX * 0.6;
 
-          // Longitudinal repulsion & braking
-          if (v1.y > v2.y) { // v1 is behind v2
+          if (v1.y > v2.y) {
             v1.y += overlapY * 0.5;
             v2.y -= overlapY * 0.5;
             v1.speed = Math.max(30, v1.speed - 15);
             v2.speed += 8;
-          } else { // v2 is behind v1
+          } else {
             v2.y += overlapY * 0.5;
             v1.y -= overlapY * 0.5;
             v2.speed = Math.max(30, v2.speed - 15);
@@ -277,17 +267,17 @@ class TrafficManager {
       }
     }
 
-    // Clamp all vehicles strictly within road boundaries
     const minOffset = 0.5 * this.road.laneWidth;
     const maxOffset = (this.road.lanes - 0.5) * this.road.laneWidth;
-    for (const v of this.vehicles) {
+    for (let i = 0; i < this.vehicles.length; i++) {
+      const v = this.vehicles[i];
       v.laneOffset = Math.max(minOffset, Math.min(maxOffset, v.laneOffset));
     }
 
-    // 5. Update Pickups
+    // 7. Update Pickups
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i];
-      p.y += (playerSpeed * 0.12);
+      p.y += playerSpeed * 0.12 * dt60;
       if (p.laneOffset !== undefined && this.road.getX) {
         p.x = this.road.getX(p.y) + p.laneOffset;
       }
@@ -496,9 +486,10 @@ class TrafficManager {
     });
   }
 
-  render(ctx) {
+  render(ctx, lowSpec = false) {
     // 1. Render Pickups
-    for (const p of this.pickups) {
+    for (let i = 0; i < this.pickups.length; i++) {
+      const p = this.pickups[i];
       ctx.save();
       ctx.translate(p.x, p.y);
 
@@ -545,11 +536,9 @@ class TrafficManager {
         ctx.textBaseline = 'middle';
         ctx.fillText('N2O', 0, 1);
       } else if (p.type === 'repair') {
-        // Mechanic Repair Wrench (+30 HP)
         const pulse = 1 + Math.sin(p.rotation * 2) * 0.12;
         ctx.scale(pulse, pulse);
 
-        // Glowing outer shield
         ctx.fillStyle = 'rgba(0, 255, 136, 0.35)';
         ctx.beginPath();
         ctx.arc(0, 0, p.radius + 5, 0, Math.PI * 2);
@@ -560,7 +549,6 @@ class TrafficManager {
         ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Cross / Wrench symbol
         ctx.fillStyle = '#0a1a18';
         ctx.fillRect(-8, -3, 16, 6);
         ctx.fillRect(-3, -8, 6, 16);
@@ -574,19 +562,22 @@ class TrafficManager {
       ctx.restore();
     }
 
-    // 2. Render Traffic Vehicles with AI Sprites
-    for (const v of this.vehicles) {
+    // 2. Render Traffic Vehicles with Auto-Cropped Sprites & Cached FX
+    for (let i = 0; i < this.vehicles.length; i++) {
+      const v = this.vehicles[i];
       drawCar(ctx, v.x, v.y, v.width, v.length, v.color, {
+        defaultColor: v.color,
         underglow: v.isHacked ? '#00ffcc' : (v.isPolice ? (v.isEmpDisabled ? 'none' : '#0066ff') : 'none'),
         style: v.type,
         spriteKey: v.spriteKey || v.type,
-        headlights: false, // Huge FPS boost: no heavy radial light cones on traffic
+        headlights: v.isOncoming,
         steerAngle: v.steerAngle !== undefined ? v.steerAngle : (v.isOncoming ? Math.PI : 0),
         isPolice: v.isPolice,
-        policeStrobe: v.isEmpDisabled ? 0 : (v.policeStrobe || 0)
+        policeStrobe: v.isEmpDisabled ? 0 : (v.policeStrobe || 0),
+        turnSignal: v.isChangingLane ? v.laneChangeDir : 0,
+        lowSpec
       });
 
-      // Visual overlay for Hacked or EMP state (High Performance Zero-Blur)
       if (v.isHacked) {
         ctx.save();
         ctx.strokeStyle = '#00ffcc';
@@ -604,7 +595,6 @@ class TrafficManager {
         ctx.lineWidth = 2;
         ctx.strokeRect(v.x - v.width / 2 - 4, v.y - v.length / 2 - 4, v.width + 8, v.length + 8);
 
-        // Electric arcs across vehicle
         ctx.strokeStyle = '#00f2ff';
         ctx.beginPath();
         ctx.moveTo(v.x - v.width / 2 + Math.random() * 10, v.y - v.length / 4);

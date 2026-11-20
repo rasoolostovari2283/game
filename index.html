@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#070814">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Neon Highway: Traffic Racer | بازی ماشین نئونی</title>
+  <title>SHABGARD: Neon Highway | گشت شبانه</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body data-state="title">
 
   <div id="app-container">
     <!-- Main 60FPS Game Canvas with 3D wrapper -->
@@ -47,8 +47,8 @@
           <div class="hud-pill">
             <span style="font-size:0.7rem; color:var(--text-dim)">مسافت: <span id="hud-dist-val" style="color:#fff; font-family:var(--font-arcade)">0.0 km</span></span>
           </div>
-          <button id="btn-hud-cam" class="hud-pause-btn" aria-label="تغییر دوربین" style="margin-right: 8px;">🎥</button>
-          <button id="btn-hud-pause" class="hud-pause-btn" aria-label="توقف">⏸</button>
+          <button id="btn-hud-cam" class="hud-pause-btn" tabindex="-1" aria-label="تغییر دوربین" style="margin-right: 8px;">🎥</button>
+          <button id="btn-hud-pause" class="hud-pause-btn" tabindex="-1" aria-label="توقف">⏸</button>
         </div>
       </div>
 
@@ -60,15 +60,18 @@
         </div>
 
         <!-- Dynamic Tachometer & Gear -->
-        <div class="telemetry-box rpm-gear-box">
+        <div class="telemetry-box rpm-gear-box" dir="ltr">
           <div class="gear-display">
             <span class="sub-label">GEAR</span>
             <span id="hud-gear-val" class="gear-number">4</span>
           </div>
           <div class="rpm-display">
-            <div class="rpm-number-row">
+            <div class="rpm-header-row">
               <span class="sub-label">TACHOMETER</span>
-              <span id="hud-rpm-val" class="rpm-number">6,200</span> <span class="rpm-unit">RPM</span>
+              <span class="rpm-unit">RPM</span>
+            </div>
+            <div class="rpm-number-row">
+              <span id="hud-rpm-val" class="rpm-number">6,200</span>
             </div>
             <div class="rpm-bar-outer">
               <div id="hud-rpm-bar" class="rpm-bar-inner"></div>
@@ -77,7 +80,7 @@
         </div>
 
         <!-- Turbo Boost & G-Force -->
-        <div class="telemetry-box-row">
+        <div class="telemetry-box-row" dir="ltr">
           <div class="telemetry-mini-box">
             <span class="mini-label">TURBO BOOST</span>
             <div class="mini-val-row">
@@ -109,8 +112,17 @@
         </div>
       </div>
 
-      <!-- Right Side Mission & Cyber-Scanner Terminal (Desktop Wide) -->
+      <!-- Right Side Radar, Mission & Cyber-Scanner Terminal (Desktop Wide) -->
       <div id="hud-right-panel" class="hud-side-panel hud-right-terminal">
+        <!-- Integrated Cyberpunk GPS Minimap / Radar (Zero Overlap) -->
+        <div id="hud-minimap" class="telemetry-box hud-minimap-docked">
+          <div class="minimap-title">
+            <span class="radar-dot"></span>
+            <span>GPS RADAR</span>
+          </div>
+          <canvas id="minimap-canvas" width="204" height="106"></canvas>
+        </div>
+
         <!-- Cyber-Scanner -->
         <div class="telemetry-box scanner-box">
           <div class="scanner-title-row">
@@ -142,22 +154,13 @@
         </div>
       </div>
 
-      <!-- Cyberpunk GPS Minimap / Radar -->
-      <div id="hud-minimap" class="hud-minimap">
-        <div class="minimap-title">
-          <span class="radar-dot"></span>
-          <span>GPS MAP</span>
-        </div>
-        <canvas id="minimap-canvas" width="84" height="160"></canvas>
-      </div>
-
       <!-- In-Game Flash Alerts -->
       <div id="near-miss-banner">🔥 NEAR MISS! +100</div>
       <div id="mission-popup-banner">🏆 مأموریت انجام شد!</div>
       <div id="police-alert-banner" style="display:none; position:absolute; top:20%; left:50%; transform:translateX(-50%); font-family:var(--font-persian); font-size:1.15rem; font-weight:900; background:linear-gradient(90deg, #ff0033, #0066ff); color:#fff; padding:8px 24px; border-radius:14px; box-shadow:0 0 25px rgba(255,0,50,0.8); z-index:10;">🚨 هشدار: گشت پلیس در تعقیب شماست!</div>
       <div id="speed-bomb-alert" style="display:none; position:absolute; top:25%; left:50%; transform:translateX(-50%); font-family:var(--font-arcade); font-size:1.3rem; font-weight:900; background:rgba(0,0,0,0.7); padding:6px 20px; border-radius:12px; border:1px solid red;">💣 BOMB: 10.0s</div>
 
-      <!-- Speedometer, Health & Nitro -->
+      <!-- Speedometer, Cyber Energy, Health & Nitro (Zero Overlap Cluster) -->
       <div class="hud-bottom-gauges">
         <div class="health-gauge-wrap">
           <div class="gauge-label"><span class="shield-icon">🛡️</span> دوام: <span id="hud-health-pct">100%</span></div>
@@ -166,12 +169,24 @@
           </div>
         </div>
 
-        <div class="speedometer-wrap">
-          <div id="hud-speed-val" class="speed-number">0</div>
-          <div class="speed-unit">KM / H</div>
-          <div class="cyber-mini-status">
-            <span id="badge-slowmo" class="cyber-status-pill">⏱️ SHIFT</span>
-            <span id="badge-hack" class="cyber-status-pill">⚡ E:HACK</span>
+        <div class="hud-center-cluster">
+          <div class="cyber-energy-hud">
+            <div class="cyber-energy-row">
+              <span>🔋 توان سایبری: <span id="hud-cyber-pct">100%</span></span>
+              <span class="cyber-energy-hint">[SHIFT] اسلوموشن | [E] هک</span>
+            </div>
+            <div class="cyber-energy-bar-outer">
+              <div id="hud-cyber-bar" class="cyber-energy-bar-inner"></div>
+            </div>
+          </div>
+
+          <div class="speedometer-wrap">
+            <div id="hud-speed-val" class="speed-number">0</div>
+            <div class="speed-unit">KM / H</div>
+            <div class="cyber-mini-status">
+              <span id="badge-slowmo" class="cyber-status-pill">⏱️ SHIFT</span>
+              <span id="badge-hack" class="cyber-status-pill">⚡ E:HACK</span>
+            </div>
           </div>
         </div>
 
@@ -183,17 +198,6 @@
         </div>
       </div>
 
-      <!-- Cyber Energy Bar -->
-      <div class="cyber-energy-hud">
-        <div class="cyber-energy-row">
-          <span>🔋 توان سایبری: <span id="hud-cyber-pct">100%</span></span>
-          <span class="cyber-energy-hint">[SHIFT] اسلوموشن | [E] هک مسیر</span>
-        </div>
-        <div class="cyber-energy-bar-outer">
-          <div id="hud-cyber-bar" class="cyber-energy-bar-inner"></div>
-        </div>
-      </div>
-      
       <!-- 1st Person Dashboard Overlay -->
       <div id="hud-dashboard" class="hidden">
         <div class="steering-wheel"></div>
@@ -204,7 +208,7 @@
     <div id="start-screen" class="screen-overlay">
       <div class="menu-card">
         <h1 class="game-title">SHABGARD</h1>
-        <p class="game-subtitle">گشت شبانه - پروژه مبانی بازی‌سازی</p>
+        <p class="game-subtitle">NEON HIGHWAY · گشت شبانه</p>
 
         <div class="stats-pill-container">
           <div class="stat-pill">
@@ -246,7 +250,7 @@
           </div>
         </div>
 
-        <button id="btn-play" class="btn-primary">
+        <button id="btn-play" class="btn-primary" data-start="true">
           <span>شروع مسابقه</span>
         </button>
 
@@ -265,6 +269,10 @@
         <button id="btn-settings" class="btn-secondary">
           <span>تنظیمات سیستم</span>
         </button>
+
+        <a href="gdd.html" id="btn-open-gdd" class="btn-secondary" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">
+          <span>📄 سند جامع طراحی بازی (GDD)</span>
+        </a>
         
         <div class="menu-credits">
           <div class="credits-team-label">👥 اعضای تیم توسعه (پروژه مبانی بازی‌سازی):</div>
@@ -289,12 +297,12 @@
         <canvas id="car-preview-canvas"></canvas>
 
         <div class="car-navigation">
-          <button id="garage-prev" class="nav-arrow-btn">❮</button>
+          <button id="garage-prev" class="nav-arrow-btn">❯</button>
           <div class="car-info">
             <div id="car-name" class="car-name">Cyber Hatch</div>
             <div id="car-class" class="car-class">اسپرت شهری</div>
           </div>
-          <button id="garage-next" class="nav-arrow-btn">▶</button>
+          <button id="garage-next" class="nav-arrow-btn">❮</button>
         </div>
 
         <div class="stats-list">
@@ -379,7 +387,7 @@
           </div>
         </div>
 
-        <button id="btn-restart" class="btn-primary">
+        <button id="btn-restart" class="btn-primary" data-start="true">
           <span>شروع مجدد</span>
         </button>
 
@@ -421,6 +429,11 @@
           <div class="settings-item">
             <span>لرزش گوشی (Haptic Vibration)</span>
             <div id="vibrate-toggle" class="toggle-switch on"><div class="toggle-knob"></div></div>
+          </div>
+
+          <div class="settings-item">
+            <span>حالت سبک و پرسرعت (سیستم‌های ضعیف)</span>
+            <div id="perf-toggle" class="toggle-switch"><div class="toggle-knob"></div></div>
           </div>
         </div>
 
@@ -520,6 +533,7 @@
   </div>
 
   <!-- Scripts in dependency order -->
+  <script src="js/sim-utils.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/cars.js"></script>
