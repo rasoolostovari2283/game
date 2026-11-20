@@ -1,0 +1,42 @@
+/* استایل‌های HUD سایبرپانکی - مریم ناظم‌سادات */
+
+.hud-pill {
+  background: linear-gradient(135deg, rgba(9, 12, 28, 0.9), rgba(15, 20, 45, 0.7));
+  border-left: 3px solid #00f2ff;
+  border-right: 1px solid rgba(0, 242, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+  border-top: 1px solid rgba(0, 242, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 4px 0 10px rgba(0, 242, 255, 0.2);
+  transform: skewX(-5deg);
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 10px 20px;
+}
+
+.speedometer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(0deg, rgba(0, 242, 255, 0.15) 0%, rgba(9, 12, 28, 0.9) 100%);
+  border: 2px solid #00f2ff;
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  padding: 15px 25px;
+  box-shadow: 0 -5px 20px rgba(0, 242, 255, 0.2);
+}
+
+.speed-number {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 0 20px #00f2ff, 0 0 40px #00f2ff;
+}
+
+.nitro-gauge-wrap {
+  transform: skewX(-10deg);
+  border-right: 3px solid #ff0077;
+  background: rgba(9, 12, 28, 0.7);
+  padding: 10px 15px;
+  border-radius: 12px;
+}

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#070814">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Neon Highway: Traffic Racer | بازی ماشین نئونی</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Main 60FPS Game Canvas with 3D wrapper -->
+    <div id="canvas-3d-wrapper" class="cam-2d">
+      <canvas id="game-canvas" tabindex="0"></canvas>
+    </div>
+
+    <!-- In-Game HUD Layer -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-pill hud-score">
+          <span class="title">امتیاز</span>
+          <span id="hud-score-val" class="score-val">0</span>
+        </div>
+
+        <div class="hud-stage-heat-pill">
+          <div class="stage-name-row">
+            <span id="hud-stage-name">مرحله ۱: اتوبان نئو-توکیو</span>
+            <span id="hud-stage-dist-left">1.5 km</span>
+          </div>
+          <div class="stage-bar-outer">
+            <div id="hud-stage-bar" class="stage-bar-inner"></div>
+          </div>
+          <div id="hud-police-heat" class="police-heat-row hidden">
+            <span class="police-badge-pulse">🚨 گشت ویژه پلیس</span>
+            <span id="hud-heat-stars">⭐⭐⭐</span>
+          </div>
+        </div>
+
+        <div class="hud-coins-dist">
+          <div class="hud-pill">
+            <span class="coin-badge">💰 <span id="hud-coin-val">0</span></span>
+          </div>
+          <div class="hud-pill">
+            <span style="font-size:0.7rem; color:var(--text-dim)">مسافت: <span id="hud-dist-val" style="color:#fff; font-family:var(--font-arcade)">0.0 km</span></span>
+          </div>
+          <button id="btn-hud-cam" class="hud-pause-btn" aria-label="تغییر دوربین" style="margin-right: 8px;">🎥</button>
+          <button id="btn-hud-pause" class="hud-pause-btn" aria-label="توقف">⏸</button>
+        </div>
+      </div>
+
+      <!-- Left Side Cockpit Telemetry Hub (Desktop Wide) -->
+      <div id="hud-left-panel" class="hud-side-panel hud-left-telemetry">
+        <div class="panel-glass-header">
+          <span class="telemetry-badge">⚡ TELEMETRY V2</span>
+          <span class="sys-ok-dot"></span>
+        </div>
+
+        <!-- Dynamic Tachometer & Gear -->
+        <div class="telemetry-box rpm-gear-box">
+          <div class="gear-display">
+            <span class="sub-label">GEAR</span>
+            <span id="hud-gear-val" class="gear-number">4</span>
+          </div>
+          <div class="rpm-display">
+            <div class="rpm-number-row">
+              <span class="sub-label">TACHOMETER</span>
+              <span id="hud-rpm-val" class="rpm-number">6,200</span> <span class="rpm-unit">RPM</span>
+            </div>
+            <div class="rpm-bar-outer">
+              <div id="hud-rpm-bar" class="rpm-bar-inner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turbo Boost & G-Force -->
+        <div class="telemetry-box-row">
+          <div class="telemetry-mini-box">
+            <span class="mini-label">TURBO BOOST</span>
+            <div class="mini-val-row">
+              <span id="hud-turbo-val" class="mini-val">1.6</span>
+              <span class="mini-unit">BAR</span>
+            </div>
+            <div class="mini-bar-outer"><div id="hud-turbo-bar" class="mini-bar-inner"></div></div>
+          </div>
+          <div class="telemetry-mini-box">
+            <span class="mini-label">LATERAL G</span>
+            <div class="mini-val-row">
+              <span id="hud-gforce-val" class="mini-val">+0.12</span>
+              <span class="mini-unit">G</span>
+            </div>
+            <div class="mini-bar-outer"><div id="hud-gforce-bar" class="mini-bar-inner"></div></div>
+          </div>
+        </div>
+
+        <!-- Tire Status & Surface Grip -->
+        <div class="telemetry-box tires-box">
+          <div class="tire-row">
+            <span>دمای چرخ‌ها:</span>
+            <span id="hud-tire-temp" class="tire-val">F: 81°C | R: 86°C</span>
+          </div>
+          <div class="tire-row">
+            <span>چسبندگی سطح (Grip):</span>
+            <span id="hud-tire-grip" class="tire-val text-cyan">98% DRY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Side Mission & Cyber-Scanner Terminal (Desktop Wide) -->
+      <div id="hud-right-panel" class="hud-side-panel hud-right-terminal">
+        <!-- Cyber-Scanner -->
+        <div class="telemetry-box scanner-box">
+          <div class="scanner-title-row">
+            <span class="pulse-ring"></span>
+            <span class="scanner-header">CYBER SCANNER</span>
+          </div>
+          <div id="scanner-content" class="scanner-info">
+            <div class="scan-row"><span class="scan-lbl">هدف:</span> <span id="scan-target-name" class="scan-val">در حال اسکن جاده...</span></div>
+            <div class="scan-row"><span class="scan-lbl">فاصله:</span> <span id="scan-target-dist" class="scan-val">--</span></div>
+            <div class="scan-row"><span class="scan-lbl">وضعیت هک:</span> <span id="scan-target-status" class="scan-val text-dim">آماده‌باش [E]</span></div>
+          </div>
+        </div>
+
+        <!-- Live Active Mission Card -->
+        <div class="telemetry-box mission-tracker-box">
+          <div class="tracker-header">🎯 مأموریت فعال:</div>
+          <div id="hud-active-mission-title" class="tracker-title">لایی‌کشی برق‌آسا</div>
+          <div class="tracker-bar-outer">
+            <div id="hud-active-mission-bar" class="tracker-bar-inner" style="width:0%"></div>
+          </div>
+          <div id="hud-active-mission-count" class="tracker-counter">۰ / ۵</div>
+        </div>
+
+        <!-- Environmental Status -->
+        <div class="telemetry-box env-box">
+          <div class="env-row"><span>ترافیک اتوبان:</span> <span class="env-val text-yellow">روان و متراکم</span></div>
+          <div class="env-row"><span>وضعیت هوا:</span> <span id="hud-env-weather" class="env-val text-cyan">شب تاریک</span></div>
+          <div class="env-row"><span>کدهای کمبو:</span> <span id="hud-combo-val" class="env-val text-pink">x1 NORMAL</span></div>
+        </div>
+      </div>
+
+      <!-- Cyberpunk GPS Minimap / Radar -->
+      <div id="hud-minimap" class="hud-minimap">
+        <div class="minimap-title">
+          <span class="radar-dot"></span>
+          <span>GPS MAP</span>
+        </div>
+        <canvas id="minimap-canvas" width="84" height="160"></canvas>
+      </div>
+
+      <!-- In-Game Flash Alerts -->
+      <div id="near-miss-banner">🔥 NEAR MISS! +100</div>
+      <div id="mission-popup-banner">🏆 مأموریت انجام شد!</div>
+      <div id="police-alert-banner" style="display:none; position:absolute; top:20%; left:50%; transform:translateX(-50%); font-family:var(--font-persian); font-size:1.15rem; font-weight:900; background:linear-gradient(90deg, #ff0033, #0066ff); color:#fff; padding:8px 24px; border-radius:14px; box-shadow:0 0 25px rgba(255,0,50,0.8); z-index:10;">🚨 هشدار: گشت پلیس در تعقیب شماست!</div>
+      <div id="speed-bomb-alert" style="display:none; position:absolute; top:25%; left:50%; transform:translateX(-50%); font-family:var(--font-arcade); font-size:1.3rem; font-weight:900; background:rgba(0,0,0,0.7); padding:6px 20px; border-radius:12px; border:1px solid red;">💣 BOMB: 10.0s</div>
+
+      <!-- Speedometer, Health & Nitro -->
+      <div class="hud-bottom-gauges">
+        <div class="health-gauge-wrap">
+          <div class="gauge-label"><span class="shield-icon">🛡️</span> دوام: <span id="hud-health-pct">100%</span></div>
+          <div class="health-bar-outer">
+            <div id="hud-health-bar" class="health-bar-inner"></div>
+          </div>
+        </div>
+
+        <div class="speedometer-wrap">
+          <div id="hud-speed-val" class="speed-number">0</div>
+          <div class="speed-unit">KM / H</div>
+          <div class="cyber-mini-status">
+            <span id="badge-slowmo" class="cyber-status-pill">⏱️ SHIFT</span>
+            <span id="badge-hack" class="cyber-status-pill">⚡ E:HACK</span>
+          </div>
+        </div>
+
+        <div class="nitro-gauge-wrap">
+          <div class="nitro-label">⚡ نیتروژن: <span id="hud-nitro-pct">100%</span></div>
+          <div class="nitro-bar-outer">
+            <div id="hud-nitro-bar" class="nitro-bar-inner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cyber Energy Bar -->
+      <div class="cyber-energy-hud">
+        <div class="cyber-energy-row">
+          <span>🔋 توان سایبری: <span id="hud-cyber-pct">100%</span></span>
+          <span class="cyber-energy-hint">[SHIFT] اسلوموشن | [E] هک مسیر</span>
+        </div>
+        <div class="cyber-energy-bar-outer">
+          <div id="hud-cyber-bar" class="cyber-energy-bar-inner"></div>
+        </div>
+      </div>
+      
+      <!-- 1st Person Dashboard Overlay -->
+      <div id="hud-dashboard" class="hidden">
+        <div class="steering-wheel"></div>
+      </div>
+    </div>
+
+    <!-- Screen 1: Start / Main Menu -->
+    <div id="start-screen" class="screen-overlay">
+      <div class="menu-card">
+        <h1 class="game-title">SHABGARD</h1>
+        <p class="game-subtitle">گشت شبانه - پروژه مبانی بازی‌سازی</p>
+
+        <div class="stats-pill-container">
+          <div class="stat-pill">
+            <span class="label">سکه موجود</span>
+            <span id="menu-coins" class="value">0</span>
+          </div>
+          <div class="stat-pill">
+            <span class="label">بهترین رکورد</span>
+            <span id="menu-highscore" class="value">0</span>
+          </div>
+        </div>
+
+        <!-- Game Mode Selection -->
+        <span class="section-label">حالت مسابقه:</span>
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="one_way">یک‌طرفه</button>
+          <button class="mode-btn" data-mode="two_way">دو‌طرفه (امتیاز x2.5)</button>
+          <button class="mode-btn" data-mode="speed_bomb">بمب سرعت</button>
+        </div>
+
+        <!-- Weather / Atmosphere Selection -->
+        <span class="section-label">آب‌وهوا و فضا:</span>
+        <div class="weather-selector">
+          <button class="weather-btn active" data-weather="night">شب تاریک</button>
+          <button class="weather-btn" data-weather="rain">هوای بارانی</button>
+          <button class="weather-btn" data-weather="sunset">غروب آفتاب</button>
+        </div>
+
+        <!-- Cyber Quick Controls Box for Desktop -->
+        <div class="cyber-quick-controls">
+          <div class="quick-ctrl-title">🎮 کلیدهای کنترل نسخه ویندوز:</div>
+          <div class="quick-ctrl-tags">
+            <span class="ctrl-tag"><kbd>W</kbd> گاز</span>
+            <span class="ctrl-tag"><kbd>S</kbd> ترمز</span>
+            <span class="ctrl-tag"><kbd>A</kbd><kbd>D</kbd> فرمان</span>
+            <span class="ctrl-tag"><kbd>SPACE</kbd> نیتروژن</span>
+            <span class="ctrl-tag ctrl-tag-cyan"><kbd>SHIFT</kbd> اسلوموشن</span>
+            <span class="ctrl-tag ctrl-tag-green"><kbd>E</kbd> هک سایبری</span>
+          </div>
+        </div>
+
+        <button id="btn-play" class="btn-primary">
+          <span>شروع مسابقه</span>
+        </button>
+
+        <button id="btn-controls-guide" class="btn-secondary">
+          <span>🎮 راهنمای کامل کلیدها (Help)</span>
+        </button>
+
+        <button id="btn-garage" class="btn-secondary">
+          <span>گاراژ ماشین‌ها</span>
+        </button>
+
+        <button id="btn-missions" class="btn-secondary">
+          <span>مأموریت‌ها و چالش‌ها</span>
+        </button>
+
+        <button id="btn-settings" class="btn-secondary">
+          <span>تنظیمات سیستم</span>
+        </button>
+        
+        <div class="menu-credits">
+          <div class="credits-team-label">👥 اعضای تیم توسعه (پروژه مبانی بازی‌سازی):</div>
+          <div class="credits-members-list">
+            <span class="member-chip"><span class="chip-avatar">👤</span> رسول استواری</span>
+            <span class="member-chip"><span class="chip-avatar">👤</span> احسان کاظمی</span>
+            <span class="member-chip"><span class="chip-avatar">👤</span> مریم ناظم‌سادات</span>
+            <span class="member-chip"><span class="chip-avatar">👤</span> هانیه کاویانی</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Garage & Upgrades -->
+    <div id="garage-screen" class="screen-overlay hidden">
+      <div class="menu-card">
+        <div class="garage-header">
+          <span style="font-weight:700; font-size:1.1rem">گاراژ ماشین‌ها</span>
+          <div class="garage-coins">سکه: <span id="garage-coins-val">0</span></div>
+        </div>
+
+        <canvas id="car-preview-canvas"></canvas>
+
+        <div class="car-navigation">
+          <button id="garage-prev" class="nav-arrow-btn">❮</button>
+          <div class="car-info">
+            <div id="car-name" class="car-name">Cyber Hatch</div>
+            <div id="car-class" class="car-class">اسپرت شهری</div>
+          </div>
+          <button id="garage-next" class="nav-arrow-btn">▶</button>
+        </div>
+
+        <div class="stats-list">
+          <div id="stat-speed" class="stat-row">
+            <span class="stat-name">سرعت نهایی</span>
+            <div class="stat-bar-outer"><div class="stat-bar-inner"></div></div>
+            <span class="stat-val">140</span>
+            <button id="upgrade-speed" class="nav-arrow-btn" style="width:auto; height:28px; padding:0 8px; font-size:0.75rem; margin-right:6px;">+</button>
+          </div>
+
+          <div id="stat-accel" class="stat-row">
+            <span class="stat-name">شتاب اولیه</span>
+            <div class="stat-bar-outer"><div class="stat-bar-inner"></div></div>
+            <span class="stat-val">5.5</span>
+            <button id="upgrade-accel" class="nav-arrow-btn" style="width:auto; height:28px; padding:0 8px; font-size:0.75rem; margin-right:6px;">+</button>
+          </div>
+
+          <div id="stat-handling" class="stat-row">
+            <span class="stat-name">فرمان‌پذیری</span>
+            <div class="stat-bar-outer"><div class="stat-bar-inner"></div></div>
+            <span class="stat-val">6.5</span>
+            <button id="upgrade-handling" class="nav-arrow-btn" style="width:auto; height:28px; padding:0 8px; font-size:0.75rem; margin-right:6px;">+</button>
+          </div>
+
+          <div id="stat-nitro" class="stat-row">
+            <span class="stat-name">ظرفیت نیترو</span>
+            <div class="stat-bar-outer"><div class="stat-bar-inner"></div></div>
+            <span class="stat-val">5.0s</span>
+            <button id="upgrade-nitro" class="nav-arrow-btn" style="width:auto; height:28px; padding:0 8px; font-size:0.75rem; margin-right:6px;">+</button>
+          </div>
+        </div>
+
+        <div class="customization-section">
+          <span style="font-size:0.8rem; color:var(--text-dim)">رنگ بدنه ماشین:</span>
+          <div id="paint-palette" class="color-palette"></div>
+          <span style="font-size:0.8rem; color:var(--text-dim); margin-top:6px;">نور نئون زیر ماشین (Underglow):</span>
+          <div id="underglow-palette" class="color-palette"></div>
+        </div>
+
+        <button id="garage-action-btn" class="btn-primary" style="margin-top:8px;">انتخاب ماشین</button>
+        <button id="btn-close-garage" class="btn-secondary">بازگشت به منو</button>
+      </div>
+    </div>
+
+    <!-- Screen 3: Missions & Stats Modal -->
+    <div id="missions-screen" class="screen-overlay hidden">
+      <div class="menu-card">
+        <h3 style="font-size:1.3rem; margin-bottom:6px; color:var(--yellow-neon)">مأموریت‌ها و دستاوردها</h3>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:14px;">چالش‌ها را به پایان برسانید و جایزه نقدی بگیرید!</p>
+
+        <div id="missions-list-container" class="missions-list"></div>
+
+        <h4 style="font-size:1rem; margin:14px 0 8px 0; text-align:right; color:var(--cyan-neon)">آمار تجمعی راننده:</h4>
+        <div id="lifetime-stats-container" style="background:rgba(0,0,0,0.3); border-radius:12px; padding:12px; margin-bottom:14px;"></div>
+
+        <button id="btn-close-missions" class="btn-secondary">بازگشت به منو</button>
+      </div>
+    </div>
+
+    <!-- Screen 4: Game Over Screen -->
+    <div id="game-over-screen" class="screen-overlay hidden">
+      <div class="menu-card">
+        <h2 style="font-family:var(--font-arcade); font-size:2rem; color:#ff0055; text-shadow:0 0 20px #ff0055; margin-bottom:6px;">CRASHED!</h2>
+        <div id="new-record-tag" class="new-record-tag" style="display:none;">رکورد جدید ثبت شد!</div>
+
+        <div class="game-over-stats">
+          <div class="go-row">
+            <span>امتیاز نهایی:</span>
+            <span id="go-score" class="go-val">0</span>
+          </div>
+          <div class="go-row">
+            <span>مسافت طی شده:</span>
+            <span id="go-dist" class="go-val">0.0 km</span>
+          </div>
+          <div class="go-row">
+            <span>لایی‌کشی‌های موفق (Near Miss):</span>
+            <span id="go-misses" class="go-val" style="color:var(--yellow-neon)">0</span>
+          </div>
+          <div class="go-row">
+            <span>سکه کسب شده:</span>
+            <span id="go-coins" class="go-val" style="color:var(--yellow-neon)">+0</span>
+          </div>
+        </div>
+
+        <button id="btn-restart" class="btn-primary">
+          <span>شروع مجدد</span>
+        </button>
+
+        <button id="btn-go-garage" class="btn-secondary">
+          <span>رفتن به گاراژ و ارتقا</span>
+        </button>
+
+        <button id="btn-go-home" class="btn-secondary">
+          <span>منوی اصلی</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Screen 5: Settings & Guide Screen -->
+    <div id="settings-screen" class="screen-overlay hidden">
+      <div class="menu-card">
+        <h3 style="font-size:1.3rem; margin-bottom:14px;">تنظیمات و کنترل صدا</h3>
+
+        <div class="settings-list">
+          <div class="settings-item">
+            <span>موسیقی متن Synthwave 80s</span>
+            <div id="music-toggle" class="toggle-switch on"><div class="toggle-knob"></div></div>
+          </div>
+
+          <div class="settings-item">
+            <span>ولوم موسیقی</span>
+            <div class="slider-wrap">
+              <input type="range" id="music-slider" min="0" max="1" step="0.05" value="0.5">
+            </div>
+          </div>
+
+          <div class="settings-item">
+            <span>ولوم افکت‌ها (موتور، نیترو، تصادف)</span>
+            <div class="slider-wrap">
+              <input type="range" id="sfx-slider" min="0" max="1" step="0.05" value="0.8">
+            </div>
+          </div>
+
+          <div class="settings-item">
+            <span>لرزش گوشی (Haptic Vibration)</span>
+            <div id="vibrate-toggle" class="toggle-switch on"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+
+        <div style="background:rgba(0,0,0,0.3); border-radius:14px; padding:12px; text-align:right; font-size:0.85rem; color:var(--text-dim); margin-bottom:16px; line-height:1.8;">
+          <b style="color:#fff">راهنمای کلیدها و گیم‌پلی:</b><br>
+          • <b>حرکت:</b> W A S D یا جهت‌نماهای کیبورد<br>
+          • <b>نیترو:</b> کلید Space یا دکمه N2O<br>
+          • <b>بوق اضطراری:</b> کلید H یا دکمه BEEP (ماشین‌های جلویی مسیر را باز می‌کنند!)<br>
+          • <b>دوربین سه‌بعدی:</b> کلید C یا دکمه دوربین بالای صفحه<br>
+          • <b>توقف:</b> کلید Esc یا P<br>
+          • <b>موانع جاده‌ای:</b> لکه روغن باعث لغزش و مخروط جاده‌ای سرعت شما را کم می‌کند.
+        </div>
+
+        <button id="btn-close-settings" class="btn-secondary">تأیید و بازگشت</button>
+      </div>
+    </div>
+
+    <!-- Screen 6: Pause Modal -->
+    <div id="pause-modal" class="screen-overlay hidden">
+      <div class="menu-card" style="max-width:320px;">
+        <h3 style="font-family:var(--font-arcade); font-size:1.8rem; margin-bottom:20px;">PAUSED</h3>
+        <button id="btn-resume" class="btn-primary" style="margin-bottom:12px;">ادامه مسابقه</button>
+        <button onclick="location.reload()" class="btn-secondary">خروج به منو</button>
+      </div>
+    </div>
+
+    <!-- Screen 7: Stage Complete Modal -->
+    <div id="stage-clear-modal" class="screen-overlay hidden">
+      <div class="menu-card" style="max-width:380px;">
+        <div class="stage-clear-badge">🏆 مرحله با موفقیت تکمیل شد!</div>
+        <h2 id="stage-clear-title" style="font-size:1.4rem; color:var(--cyan-neon); margin:14px 0 6px;">مرحله ۱ به پایان رسید</h2>
+        <p id="stage-clear-desc" style="font-size:0.88rem; color:var(--text-dim); margin-bottom:16px; line-height:1.7;">پیچ‌وخم‌های اتوبان را پشت سر گذاشتید! سرعت و هندلینگ عالی بود.</p>
+        <div class="stage-reward-box" style="background:rgba(255,230,0,0.1); border:1px solid var(--yellow-neon); border-radius:12px; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+          <span style="color:#fff; font-size:0.9rem;">پاداش عبور از مرحله:</span>
+          <span id="stage-reward-coins" style="font-family:var(--font-arcade); color:var(--yellow-neon); font-size:1.4rem; font-weight:800;">+500 💰</span>
+        </div>
+        <button id="btn-next-stage" class="btn-primary" style="margin-bottom:10px;">ورود به مرحله بعد ▶</button>
+        <button id="btn-endless-stage" class="btn-secondary">ادامه بی‌پایان در این مرحله ♾️</button>
+      </div>
+    </div>
+
+    <!-- Screen 8: Complete Desktop Controls Guide Modal -->
+    <div id="controls-modal" class="screen-overlay hidden">
+      <div class="menu-card controls-card">
+        <h2 class="modal-title">🎮 راهنمای کامل کنترل‌های بازی</h2>
+        <p class="modal-subtitle">کلیدهای کیبورد نسخه ویندوز دسکتاپ</p>
+
+        <div class="controls-grid">
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>W</kbd> یا <kbd>↑</kbd></span>
+            <span class="ctrl-desc">گاز و شتاب‌گیری اتوبان (Throttle / Gas)</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>S</kbd> یا <kbd>↓</kbd></span>
+            <span class="ctrl-desc">ترمز دیسکی و دود چرخ‌ها (Brake)</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>A</kbd> / <kbd>D</kbd> یا <kbd>←</kbd> / <kbd>→</kbd></span>
+            <span class="ctrl-desc">گردش فرمان و لایی‌کشی بین خودروها (Steer)</span>
+          </div>
+          <div class="ctrl-row ctrl-highlight">
+            <span class="ctrl-keys"><kbd>SPACE</kbd></span>
+            <span class="ctrl-desc">⚡ بوست نیتروژن N2O (شعله اگزوز و شتاب ۲۰۰+)</span>
+          </div>
+          <div class="ctrl-row ctrl-highlight-cyan">
+            <span class="ctrl-keys"><kbd>SHIFT</kbd></span>
+            <span class="ctrl-desc">⏱️ اسلوموشن ماتریسی (کندی زمان و رفلکس فرابشری)</span>
+          </div>
+          <div class="ctrl-row ctrl-highlight-green">
+            <span class="ctrl-keys"><kbd>E</kbd> یا <kbd>F</kbd></span>
+            <span class="ctrl-desc">⚡ هک کامپیوتر خودروها / شلیک پالس EMP پلیس</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>H</kbd></span>
+            <span class="ctrl-desc">📢 بوق زدن برای هشدار و تخلیه لاین ترافیک</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>C</kbd></span>
+            <span class="ctrl-desc">🎥 سوئیچ دوربین (دید بالا / سوم شخص / دید راننده)</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>P</kbd> یا <kbd>ESC</kbd></span>
+            <span class="ctrl-desc">⏸ توقف مسابقه و ورود به منوی Pause</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="ctrl-keys"><kbd>F11</kbd></span>
+            <span class="ctrl-desc">🖥️ حالت تمام‌صفحه سینمایی (Fullscreen)</span>
+          </div>
+        </div>
+
+        <button id="btn-close-controls" class="btn-primary" style="margin-top:15px;">
+          <span>متوجه شدم - بازگشت به منو</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts in dependency order -->
+  <script src="js/audio.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/cars.js"></script>
+  <script src="js/traffic.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/game.js"></script>
+
+  <!-- Clear all stale caches and unregister service workers safely -->
+  <script>
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let r of registrations) r.unregister();
+        }).catch(() => {});
+      }
+    } catch (e) {}
+
+    try {
+      if ('caches' in window && caches.keys) {
+        caches.keys().then(names => {
+          for (let name of names) caches.delete(name);
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "neon-highway-racer",
+  "version": "1.0.0",
+  "description": "Neon Highway: Traffic Racer - پروژه بازی‌سازی اتوبان نئونی",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-packager . NeonHighway --platform=win32 --arch=x64 --out=dist --overwrite"
+  },
+  "keywords": [
+    "game",
+    "traffic-racer",
+    "racing",
+    "arcade"
+  ],
+  "author": "Rasool Ostovari, Ehsan Kazemi, Maryam Nazemsadat, Haniyeh Kaviani",
+  "license": "MIT",
+  "devDependencies": {
+    "docx": "^9.11.0",
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.3",
+    "electron-packager": "^17.1.2"
+  },
+  "type": "commonjs"
+}

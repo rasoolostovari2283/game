@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>سند ارزیابی فنی و نقشه راه اسپرینت دوم - Neon Highway</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Vazirmatn', Tahoma, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.65;
+      color: #1f2937;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .header-card {
+      background: linear-gradient(135deg, #090d16 0%, #0f1c2e 60%, #152642 100%);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 22px;
+      border-right: 6px solid #00f2ff;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .project-tag {
+      display: inline-block;
+      background: rgba(0, 242, 255, 0.15);
+      color: #00f2ff;
+      border: 1px solid rgba(0, 242, 255, 0.4);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 4px 0 8px;
+      font-size: 19pt;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+
+    .header-meta {
+      font-size: 9.5pt;
+      color: #cbd5e1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 10px;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-item strong {
+      color: #00f2ff;
+    }
+
+    h2 {
+      font-size: 13.5pt;
+      font-weight: 800;
+      color: #0f2b46;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin: 0 0 10px;
+      text-align: justify;
+    }
+
+    .alert-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-right: 4px solid #16a34a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 14px 0;
+      font-size: 9.5pt;
+    }
+
+    .alert-box.warning {
+      background: #fefce8;
+      border-color: #fef08a;
+      border-right-color: #ca8a04;
+    }
+
+    .member-review-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+
+    .member-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .member-name {
+      font-size: 11.5pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .member-role {
+      font-size: 9pt;
+      color: #475569;
+      background: #e2e8f0;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      font-weight: 700;
+    }
+
+    .badge-approved {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge-rework {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    ul {
+      margin: 6px 0 10px;
+      padding-right: 22px;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .task-list {
+      list-style-type: none;
+      padding-right: 0;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 9.5pt;
+    }
+
+    .task-num {
+      background: #1e3a8a;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: right;
+    }
+
+    th {
+      background: #0f2b46;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .deadline-banner {
+      background: linear-gradient(90deg, #b91c1c, #dc2626);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 18px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(185, 28, 28, 0.25);
+    }
+
+    .deadline-title {
+      font-weight: 800;
+      font-size: 11pt;
+    }
+
+    .deadline-date {
+      font-weight: 900;
+      font-size: 12pt;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 8.5pt;
+      color: #64748b;
+      margin-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Card -->
+  <div class="header-card">
+    <span class="project-tag">پروژه درس مبانی بازی‌سازی | دانشگاه</span>
+    <h1>سند ارزیابی فنی و نقشه راه اسپرینت دوم (Sprint 2 Roadmap)</h1>
+    <p style="margin: 0; color: #94a3b8; font-size: 10pt;">بررسی ماژول‌های دریافتی، ادغام در هسته، گزارش اصلاحات و برنامه کاری یک‌هفته‌ای تیم توسعه Neon Highway</p>
+    
+    <div class="header-meta">
+      <div class="meta-item">👤 <span>سرپرست فنی و معمار سیستم: <strong>رسول استواری</strong></span></div>
+      <div class="meta-item">📅 <span>تاریخ ابلاغ: <strong>سه‌شنبه ۱۳ آبان ۱۴۰۳</strong></span></div>
+      <div class="meta-item">⏱️ <span>مهلت تحویل نهایی: <strong>سه‌شنبه ۲۰ آبان ۱۴۰۳ (ساعت ۲۳:۵۹)</strong></span></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Introduction -->
+  <h2>۱. خلاصه وضعیت پروژه و تحلیل عملکرد اسپرینت اول</h2>
+  <p>
+    ضمن تشکر و خداقوت به اعضای پرتلاش تیم (احسان کاظمی، مریم ناظم‌سادات و هانیه کاویانی) جهت تحویل ماژول‌های اسپرینت اول در موعد مقرر. کدهای دریافتی در هر ۳ حوزه فیزیک، گرافیک و هوش مصنوعی بررسی و اعتبارسنجی شدند.
+  </p>
+  <div class="alert-box">
+    <strong>نتیجه سرهم‌بندی و تست یکپارچگی (Integration Test):</strong>
+    پروژه با موفقیت به نرخ ۶۰ الی ۱۲۰ فریم دسکتاپ ارتقا یافت، مکانیک‌های خلاقانه اسلوموشن ماتریسی و هک پالس الکترومغناطیسی (EMP) به همراه داشبورد تله‌متری با کدهای دریافتی پیوند خوردند. اکنون برای رسیدن به یک محصول کاملاً پایدار و آماده ارائه نهایی، وارد <strong>اسپرینت دوم (مهلت دقیق ۱ هفته)</strong> می‌شویم.
+  </div>
+
+  <!-- Section 2: Code Reviews -->
+  <h2>۲. نتایج ارزیابی تفصیلی کدهای دریافتی (Code Audit & Review)</h2>
+
+  <!-- Ehsan Review -->
+  <div class="member-review-card">
+    <div class="member-header">
+      <div>
+        <span class="member-name">👤 ۱. احسان کاظمی</span>
+        <span class="member-role">مهندس فیزیک و استقرار دسکتاپ</span>
+      </div>
+      <span class="status-badge badge-approved">تأیید هسته فیزیک + نیازمند ارتقای لانچر</span>
+    </div>
+    <p><strong>ماژول‌های تحویلی:</strong> <code>desktop_launcher.cs</code> | <code>input_handler.js</code> | <code>physics_engine.js</code></p>
+    <ul>
+      <li><strong>نقاط قوت:</strong> پیاده‌سازی بسیار تمیز شتاب خطی متناسب با ارتقا، شبیه‌سازی اینرسی گردش فرمان با درون‌یابی نرم (Lerp ضریب ۱۶)، فیزیک لغزش روی روغن، و هندلینگ کلیدهای جهت‌نما و WASD.</li>
+      <li><strong>ایرادات و گپ‌های کشف‌شده:</strong>
+        لانچر C# از کامپوننت قدیمی <code>System.Windows.Forms.WebBrowser</code> استفاده کرده که موتور رندرینگ آن بر پایه اینترنت اکسپلورر قدیمی است و متدهای مدرن Web Audio و Canvas در آن افت فریم دارند. همچنین کلیدهای جدید اسلوموشن (SHIFT)، هک (E) و دوربین (C) در ورودی‌ها تعریف نشده بودند.
+      </li>
+    </ul>
+  </div>
+
+  <!-- Maryam Review -->
+  <div class="member-review-card">
+    <div class="member-header">
+      <div>
+        <span class="member-name">👤 ۲. مریم ناظم‌سادات</span>
+        <span class="member-role">توسعه‌دهنده گرافیک رویه‌ای و ذرات</span>
+      </div>
+      <span class="status-badge badge-approved">تأیید استایل و ذرات + نیازمند بهینه‌سازی رندر</span>
+    </div>
+    <p><strong>ماژول‌های تحویلی:</strong> <code>hud_styles.css</code> | <code>particle_weather_system.js</code> | <code>procedural_cars.js</code></p>
+    <ul>
+      <li><strong>نقاط قوت:</strong> استایل سایبرپانکی HUD با تکنیک <code>skewX</code> و کنتراست نئونی عالی، رندرینگ زیبای مخروط نور چراغ جلو و نئون زیر ماشین، و ذرات هوشمند دود و شعله نیترو دو فازی.</li>
+      <li><strong>ایرادات و گپ‌های کشف‌شده:</strong>
+        رسم برداری مستقیم تمام خودروها با <code>shadowBlur</code> سنگین در هر فریم، پردازنده گرافیکی لپ‌تاپ‌ها را اشغال می‌کرد. ذرات اختصاصی پالس EMP و رد سایبری اسلوموشن (Ghost Trails) و استایل‌های داشبورد تله‌متری دسکتاپ نیز در پکیج اولیه غایب بودند.
+      </li>
+    </ul>
+  </div>
+
+  <!-- Hanieh Review -->
+  <div class="member-review-card">
+    <div class="member-header">
+      <div>
+        <span class="member-name">👤 ۳. هانیه کاویانی</span>
+        <span class="member-role">مهندس هوش مصنوعی ترافیک، صوت و گیمیفیکیشن</span>
+      </div>
+      <span class="status-badge badge-rework">تأیید صوت و لاین‌ها + نیازمند اصلاح تداخل ترافیک</span>
+    </div>
+    <p><strong>ماژول‌های تحویلی:</strong> <code>traffic_ai_manager2.js</code> | <code>mission_gamification2.js</code> | <code>web_audio_engine2.js</code></p>
+    <ul>
+      <li><strong>نقاط قوت:</strong> معماری ساخت‌یافته ۴ لاین، واکنش هوشمند به بوق، محاسبه سبقت میلی‌متری (Near-Miss)، ذخیره‌سازی ایمن در <code>localStorage</code> و تولید فرکانسی صدای دور موتور با وب‌آدیو.</li>
+      <li><strong>ایرادات و گپ‌های کشف‌شده:</strong>
+        <strong>باگ بحرانی تداخل خودروها:</strong> در کدهای تحویلی، خودروهای با سرعت مختلف در یک لاین درون یکدیگر فرو می‌رفتند (Overlap). همچنین موسیقی متن کامل سینث‌ویو ۱۲۴ BPM و رفتار تعقیب محاصره‌ای پلیس پیاده‌سازی نشده بود.
+      </li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3: Sprint 2 Action Items -->
+  <h2>۳. تفکیک دقیق وظایف و مأموریت‌های اسپرینت دوم (Sprint 2 Action Items)</h2>
+  <p>اعضای محترم موظف هستند در بازه ۷ روزه آینده، وظایف زیر را پیاده‌سازی، تست و تحویل سرپرست فنی دهند:</p>
+
+  <!-- Tasks for Ehsan -->
+  <h3>👤 وظایف اختصاصی: احسان کاظمی (فیزیک، کنترل و استقرار دسکتاپ)</h3>
+  <div class="task-list">
+    <div class="task-item">
+      <span class="task-num">۱</span>
+      <div><strong>ارتقای پکیج دسکتاپ:</strong> جایگزینی وب‌بروزر منسوخ در لانچر C# با <code>Microsoft.Web.WebView2</code> یا آماده‌سازی اسکریپت بیلد و پکیج‌بندی مستقل با Electron Packager جهت خروجی استاندارد ویندوز ۶۴ بیتی.</div>
+    </div>
+    <div class="task-item">
+      <span class="task-num">۲</span>
+      <div><strong>تکمیل نگاشت کلیدهای کنترل دسکتاپ:</strong> پیاده‌سازی مدیریت رویداد کلیدهای <code>[SHIFT]</code> (اسلوموشن)، <code>[E]</code> (هک مسیر)، <code>[C]</code> (زاویه دید دوربین)، <code>[P/ESC]</code> (توقف) و <code>[M]</code> (صدا).</div>
+    </div>
+    <div class="task-item">
+      <span class="task-num">۳</span>
+      <div><strong>تیونینگ فیزیک باران و کلمپ عرضی جاده:</strong> متعادل‌سازی ضریب اصطکاک لاستیک در آب‌وهوای بارانی (افت ۱۰ تا ۱۵ درصدی چسبندگی) و محدودسازی موقعیت افقی خودرو به مرزهای آسفالت اتوبان.</div>
+    </div>
+  </div>
+
+  <!-- Tasks for Maryam -->
+  <h3>👤 وظایف اختصاصی: مریم ناظم‌سادات (گرافیک، ذرات و استایلینگ)</h3>
+  <div class="task-list">
+    <div class="task-item">
+      <span class="task-num">۱</span>
+      <div><strong>بهینه‌سازی کارایی رندرینگ (Texture Pre-Caching):</strong> طراحی سازوکار کش کردن اسپرایت‌های کروماکی‌شده خودروها در بوم حافظه (Offscreen Canvas) در ابعاد ۱۶۰x۳۲۰ پیکسل جهت تضمین ۶۰ فریم پایدار بدون افت نرخ نوسازی.</div>
+    </div>
+    <div class="task-item">
+      <span class="task-num">۲</span>
+      <div><strong>استایل‌های تکمیلی هاب تله‌متری:</strong> تکمیل کلاس‌های CSS پنل‌های کابین شامل تاخومتر دور موتور (۰ تا ۸۵۰۰ RPM با خط قرمز)، نشانگر دنده‌ها و رادار مینی‌مپ در <code>hud_styles.css</code>.</div>
+    </div>
+    <div class="task-item">
+      <span class="task-num">۳</span>
+      <div><strong>جلوه‌های ذرات سایبری و پلیس:</strong> طراحی سیستم شوک‌ویو حلقوی انبساطی برای پالس EMP (شعاع ۲۰۰ پیکسل)، جرقه‌های داده دیجیتال، رد فیروزه‌ای اسلوموشن و فلاش استروب دو رنگ قرمز و آبی خودروی پلیس (فرکانس ۹Hz).</div>
+    </div>
+  </div>
+
+  <!-- Tasks for Hanieh -->
+  <h3>👤 وظایف اختصاصی: هانیه کاویانی (هوش مصنوعی، صدا و گیم‌پلی)</h3>
+  <div class="task-list">
+    <div class="task-item">
+      <span class="task-num">۱</span>
+      <div><strong>اصلاح اساسی باگ تداخل ترافیک (Anti-Overlap Physics):</strong> پیاده‌سازی الگوریتم دافعه الاستیک طولی و جانبی و پایش فاصله ایمن ۲۴۰ پیکسلی بین خودروهای ترافیک تا هیچ ماشینی درون دیگری فرو نرود.</div>
+    </div>
+    <div class="task-item">
+      <span class="task-num">۲</span>
+      <div><strong>هوش تاکتیکی گشت پلیس (Flanking AI):</strong> کدنویسی الگوریتم محاصره دوطرفه خودروهای پلیس (Interceptor V8) در سطوح خطر بالای ۲ جهت احاطه بازیکن از جناحین چپ و راست.</div>
+    </div>
+    <div class="task-item">
+      <span class="task-num">۳</span>
+      <div><strong>سکوئنسر کامل موسیقی و ماموریت‌های جدید:</strong> افزودن سکوئنسر ۱۶ استپی سینث‌ویو ۱۲۴ BPM (کیک، اسنیر، بیس و ملودی لید)، افکت صوتی شلیک EMP و ۲ مأموریت جدید سایبری (هک ۳ خودرو و ۶ ثانیه اسلوموشن) به سیستم پیشرفت.</div>
+    </div>
+  </div>
+
+  <!-- Deadline Banner -->
+  <div class="deadline-banner">
+    <span class="deadline-title">⏰ ددلاین قطعی تحویل اصلاحات و کدهای فاز دوم (غیرقابل تمدید):</span>
+    <span class="deadline-date">سه‌شنبه ۲۰ آبان ۱۴۰۳ — ساعت ۲۳:۵۹</span>
+  </div>
+
+  <!-- Section 4: Daily Schedule Table -->
+  <h2>۴. جدول زمان‌بندی روزانه اسپرینت دوم (برنامه کاری ۷ روزه)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 14%;">روز و تاریخ</th>
+        <th style="width: 28%;">احسان کاظمی (فیزیک و دسکتاپ)</th>
+        <th style="width: 29%;">مریم ناظم‌سادات (گرافیک و ذرات)</th>
+        <th style="width: 29%;">هانیه کاویانی (هوش مصنوعی و صوت)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>روز ۱</strong><br>(سه‌شنبه ۱۳ آبان)</td>
+        <td>جلسه هماهنگی و بررسی معماری Electron</td>
+        <td>بررسی ساختار اسپرایت‌های خودرو و کشینگ</td>
+        <td>تحلیل الگوریتم دافعه و رفع باگ تداخل</td>
+      </tr>
+      <tr>
+        <td><strong>روز ۲</strong><br>(چهارشنبه ۱۴ آبان)</td>
+        <td>پیاده‌سازی کلیدهای جدید (SHIFT, E, C, H)</td>
+        <td>طراحی Offscreen Canvas برای اسپرایت‌ها</td>
+        <td>کدنویسی فاصله ایمن ۲۴۰ پیکسلی ترافیک</td>
+      </tr>
+      <tr>
+        <td><strong>روز ۳</strong><br>(پنجشنبه ۱۵ آبان)</td>
+        <td>تیونینگ اصطکاک باران و کلمپ عرضی جاده</td>
+        <td>پیاده‌سازی انیمیشن ذرات شوک‌ویو EMP</td>
+        <td>تکمیل الگوریتم دافعه الاستیک ترافیک</td>
+      </tr>
+      <tr>
+        <td><strong>روز ۴</strong><br>(جمعه ۱۶ آبان)</td>
+        <td>تست سازگاری لانچر دسکتاپ در ویندوز</td>
+        <td>طراحی استایل تاخومتر و دنده‌شمار HUD</td>
+        <td>پیاده‌سازی رفتار محاصره‌ای پلیس (Flanking)</td>
+      </tr>
+      <tr>
+        <td><strong>روز ۵</strong><br>(شنبه ۱۷ آبان)</td>
+        <td>اتصال سنسور شتاب جانبی (G-Force)</td>
+        <td>طراحی نورهای استروب ۹ هرتز پلیس</td>
+        <td>تکمیل سکوئنسر موسیقی سینث‌ویو ۱۲۴ BPM</td>
+      </tr>
+      <tr>
+        <td><strong>روز ۶</strong><br>(یکشنبه ۱۸ آبان)</td>
+        <td>تست یکپارچگی فیزیک و رفع ایرادات حرکتی</td>
+        <td>بررسی کارایی و تضمین ۶۰ فریم در لپ‌تاپ</td>
+        <td>تست بالانس پاداش‌ها و ماموریت‌های سایبری</td>
+      </tr>
+      <tr>
+        <td><strong>روز ۷</strong><br>(دوشنبه ۱۹ آبان)</td>
+        <td>تست استرس نهایی، رفع باگ و ایجاد بیلد</td>
+        <td>تطبیق نهایی رنگ‌ها و شیدرهای نئونی</td>
+        <td>تست رانندگی طولانی بدون تداخل ترافیک</td>
+      </tr>
+      <tr style="background: #fef2f2;">
+        <td><strong>روز تحویل</strong><br>(سه‌شنبه ۲۰ آبان)</td>
+        <td colspan="3" style="text-align: center; font-weight: 800; color: #991b1b;">
+          🚀 تحویل نهایی کدهای اصلاح‌شده به رسول استواری تا ساعت ۲۳:۵۹ جهت تست تجمیعی نهایی و ارائه به استاد
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Acceptance Criteria -->
+  <h2>۵. معیارهای پذیرش و اعتبارسنجی کیفی (Acceptance Criteria)</h2>
+  <ul>
+    <li><strong>نرخ فریم پایدار:</strong> اجرای روان با حداقل ۶۰ فریم بر ثانیه بدون افت ناگهانی هنگام حضور ترافیک سنگین و باران.</li>
+    <li><strong>صفر شدن تداخل ترافیک:</strong> عدم مشاهده هرگونه فرو رفتن یا گیر کردن خودروهای ترافیک در یکدیگر در طول حداقل ۵ دقیقه تست ممتد.</li>
+    <li><strong>عملکرد کامل کلیدهای دسکتاپ:</strong> پاسخ‌دهی میلی‌ثانیه‌ای و بدون تاخیر به کلیدهای حرکتی، اسلوموشن و هک مسیر.</li>
+    <li><strong>موسیقی و صدای غنی:</strong> پخش ریتمیک موسیقی سینث‌ویو همراه با تغییر داینامیک زیروبمی صدای موتور و افکت‌های دیجیتال.</li>
+  </ul>
+
+  <div class="footer-note">
+    پروژه بازی‌سازی «Neon Highway» — پاییز ۱۴۰۳ — مدیریت و سرپرستی فنی: رسول استواری
+  </div>
+
+</body>
+</html>
+

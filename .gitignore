@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Distribution & Compiled Binaries
+dist/
+dist_apk/
+*.zip
+
+# Logs & Debug
+*.log
+stderr.log
+stdout.log
+
+# System files
+.DS_Store
+Thumbs.db

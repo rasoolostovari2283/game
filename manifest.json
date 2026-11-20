@@ -1,0 +1,18 @@
+{
+  "name": "Neon Highway: Traffic Racer",
+  "short_name": "TrafficRacer",
+  "description": "بازی اتوبان نئونی - مسابقه و لایی‌کشی با سرعت بالا در اتوبان",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090a16",
+  "theme_color": "#00f2ff",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23090a16'/><path d='M25 80 L35 25 L65 25 L75 80 Z' fill='%2300f2ff'/><rect x='42' y='10' width='16' height='40' rx='4' fill='%23ff0077'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+/* استایل‌های جامع HUD سایبرپانکی و هاب تله‌متری دسکتاپ (V2.5)
+   توسعه‌دهنده: مریم ناظم‌سادات (توسعه‌دهنده گرافیک و سیستم ذرات)
+   پروژه: Neon Highway - اسپرینت ۲ */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
+
+:root {
+  --neon-cyan: #00f2ff;
+  --neon-pink: #ff0077;
+  --neon-yellow: #ffe600;
+  --neon-green: #00ffaa;
+  --hud-bg: rgba(9, 12, 28, 0.88);
+  --hud-border: rgba(0, 242, 255, 0.35);
+  --font-arcade: 'Orbitron', monospace;
+  --font-telemetry: 'Rajdhani', sans-serif;
+}
+
+/* ۱. نشانگرهای فوقانی و کپسول‌های وضعیت */
+.hud-pill {
+  background: linear-gradient(135deg, var(--hud-bg), rgba(15, 20, 45, 0.75));
+  border-left: 3px solid var(--neon-cyan);
+  border-right: 1px solid var(--hud-border);
+  border-bottom: 1px solid var(--hud-border);
+  border-top: 1px solid var(--hud-border);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), inset 4px 0 10px rgba(0, 242, 255, 0.2);
+  transform: skewX(-10deg);
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 8px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-pill > * {
+  transform: skewX(10deg);
+}
+
+/* ۲. هاب مرکزی سرعت‌سنج دیجیتال */
+.speedometer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(0deg, rgba(0, 242, 255, 0.2) 0%, rgba(9, 12, 28, 0.94) 100%);
+  border: 2px solid var(--neon-cyan);
+  border-bottom: none;
+  border-radius: 28px 28px 0 0;
+  padding: 14px 28px 8px;
+  box-shadow: 0 -5px 25px rgba(0, 242, 255, 0.35), inset 0 2px 12px rgba(0, 242, 255, 0.25);
+  backdrop-filter: blur(14px);
+}
+
+.speed-number {
+  font-family: var(--font-arcade);
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 0 0 15px var(--neon-cyan), 0 0 35px var(--neon-cyan);
+}
+
+.speed-unit {
+  font-family: var(--font-telemetry);
+  font-size: 0.95rem;
+  color: var(--neon-cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* ۳. مخزن نیتروژن مایع */
+.nitro-gauge-wrap {
+  transform: skewX(-10deg);
+  border-right: 3px solid var(--neon-pink);
+  border-left: 1px solid rgba(255, 0, 119, 0.3);
+  border-top: 1px solid rgba(255, 0, 119, 0.3);
+  border-bottom: 1px solid rgba(255, 0, 119, 0.3);
+  background: linear-gradient(135deg, rgba(20, 8, 25, 0.88), rgba(9, 12, 28, 0.78));
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset -4px 0 10px rgba(255, 0, 119, 0.25);
+}
+
+.nitro-bar-container {
+  width: 140px;
+  height: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.nitro-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff0055, #ff00aa, #ffffff);
+  box-shadow: 0 0 12px var(--neon-pink);
+  transition: width 0.15s ease-out;
+}
+
+/* ۴. پنل تله‌متری چپ دسکتاپ (Cockpit Telemetry Hub) */
+.hud-side-panel {
+  position: absolute;
+  top: 120px;
+  background: rgba(7, 10, 24, 0.85);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  border-radius: 16px;
+  padding: 16px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 25px rgba(0, 242, 255, 0.15);
+  width: 190px;
+  pointer-events: none;
+}
+
+.hud-left-telemetry {
+  left: 24px;
+  border-left: 3px solid var(--neon-cyan);
+}
+
+.hud-right-tactical {
+  right: 24px;
+  border-right: 3px solid var(--neon-cyan);
+}
+
+/* دور موتور و تاخومتر */
+.rpm-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.rpm-number {
+  font-family: var(--font-arcade);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.rpm-bar-outer {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rpm-bar-inner {
+  height: 100%;
+  width: 65%;
+  background: linear-gradient(90deg, #00f2ff 0%, #ffe600 70%, #ff0055 100%);
+  transition: width 0.08s ease;
+}
+
+/* نشانگر دنده فعال */
+.gear-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.gear-number {
+  font-family: var(--font-arcade);
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 15px var(--neon-yellow);
+}
+
+/* ۵. مخزن توان سایبری (Cyber Energy Bar) */
+.cyber-energy-hud {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 320px;
+  background: rgba(9, 12, 28, 0.88);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+}
+
+.cyber-energy-bar-outer {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cyber-energy-bar-inner {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #00f2ff, #00ffaa);
+  box-shadow: 0 0 10px #00f2ff;
+  transition: width 0.1s linear;
+}
+
+.cyber-status-pill {
+  font-family: var(--font-telemetry);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cyber-status-pill.active {
+  background: rgba(0, 242, 255, 0.2);
+  border-color: var(--neon-cyan);
+  color: #fff;
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
