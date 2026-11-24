@@ -20,6 +20,13 @@
       // Live Assessment Metrics
       this.resetMetrics();
 
+      // Throttled HUD update timer
+      this.hudAccum = 0;
+      this.dom = null;
+      this._lastEcoVal = -1;
+      this._lastSafeClass = '';
+      this._lastSafeText = '';
+
       // Hazard Perception Controller
       this.hazardTimer = 0;
       this.hazardInterval = 7.5; // Trigger a hazard every 7-10 seconds
@@ -41,6 +48,19 @@
       this.lastTailgateWarningTime = 0;
     }
 
+    cacheDom() {
+      if (this.dom) return;
+      this.dom = {
+        hudSerious: document.getElementById('hud-serious-panel'),
+        ecoVal: document.getElementById('hud-eco-val'),
+        ecoBar: document.getElementById('hud-eco-bar'),
+        ecoStatus: document.getElementById('hud-eco-status'),
+        safeBadge: document.getElementById('hud-safe-distance-badge'),
+        lastMs: document.getElementById('hud-last-reaction-ms'),
+        banner: document.getElementById('serious-hazard-banner')
+      };
+    }
+
     resetMetrics() {
       this.reactionTimes = [];
       this.hazardsTotal = 0;
@@ -56,6 +76,9 @@
       this.activeHazard = null;
       this.hazardTimer = 0;
       this.lastTailgateWarningTime = 0;
+      this._lastEcoVal = -1;
+      this._lastSafeClass = '';
+      this._lastSafeText = '';
     }
 
     startSession(mode = 'serious_test') {
@@ -65,13 +88,9 @@
     }
 
     updateHudVisibility() {
-      const hudSerious = document.getElementById('hud-serious-panel');
-      const safeBox = document.getElementById('hud-safe-distance-card');
-      if (hudSerious) {
-        hudSerious.style.display = this.enabled ? 'flex' : 'none';
-      }
-      if (safeBox) {
-        safeBox.style.display = this.enabled ? 'block' : 'none';
+      this.cacheDom();
+      if (this.dom && this.dom.hudSerious) {
+        this.dom.hudSerious.style.display = this.enabled ? 'flex' : 'none';
       }
     }
 
@@ -91,28 +110,33 @@
       this.ecoSum += ecoData.ecoScore;
       this.ecoTicks += 1;
 
-      // Update Eco HUD element
-      this.updateEcoHud(ecoData);
-
       // 2. Safe Distance & Two-Second Rule Tracking
       this.updateSafeDistance(delta, player, vehicles);
 
       // 3. Hazard Perception Cycle
       this.updateHazardCycle(delta, player, vehicles, keys);
+
+      // 4. Throttled DOM updates (Runs at ~10 FPS instead of 60 FPS to prevent reflows!)
+      this.hudAccum = (this.hudAccum || 0) + delta;
+      if (this.hudAccum >= 0.1) {
+        this.hudAccum = 0;
+        this.updateEcoHudThrottled(ecoData);
+      }
     }
 
-    updateEcoHud(ecoData) {
-      const valEl = document.getElementById('hud-eco-val');
-      const barEl = document.getElementById('hud-eco-bar');
-      const statusEl = document.getElementById('hud-eco-status');
-      if (valEl) valEl.textContent = ecoData.ecoScore + '%';
-      if (barEl) {
-        barEl.style.width = ecoData.ecoScore + '%';
-        if (ecoData.ecoScore >= 80) barEl.style.background = '#00ff88';
-        else if (ecoData.ecoScore >= 50) barEl.style.background = '#ffcc00';
-        else barEl.style.background = '#ff0055';
+    updateEcoHudThrottled(ecoData) {
+      this.cacheDom();
+      if (!this.dom) return;
+
+      if (this._lastEcoVal !== ecoData.ecoScore) {
+        this._lastEcoVal = ecoData.ecoScore;
+        if (this.dom.ecoVal) this.dom.ecoVal.textContent = ecoData.ecoScore + '%';
+        if (this.dom.ecoBar) {
+          this.dom.ecoBar.style.width = ecoData.ecoScore + '%';
+          this.dom.ecoBar.style.background = ecoData.ecoScore >= 80 ? '#00ff88' : (ecoData.ecoScore >= 50 ? '#ffcc00' : '#ff0055');
+        }
+        if (this.dom.ecoStatus) this.dom.ecoStatus.textContent = ecoData.status;
       }
-      if (statusEl) statusEl.textContent = ecoData.status;
     }
 
     updateSafeDistance(delta, player, vehicles) {
@@ -138,19 +162,21 @@
 
       this.nearestAheadVehicle = nearest;
 
-      const safeBadge = document.getElementById('hud-safe-distance-badge');
+      this.cacheDom();
+      const safeBadge = this.dom ? this.dom.safeBadge : null;
       const safeDistanceMeters = (player.speed / 3.6) * safeThreshold.timeGapSec;
 
       if (nearest && minDy < 500) {
-        // Approximate distance in meters (using 3.2px per meter)
         const currentDistanceMeters = Math.max(1, (minDy / 3.2)).toFixed(1);
         const isTailgating = minDy < safeThreshold.safeDistancePx * 0.65;
 
         if (isTailgating && player.speed > 45) {
           this.tailgatingDuration += delta;
-          if (safeBadge) {
+          const text = `فاصله خطرناک! (${currentDistanceMeters}m / حداقل: ${safeDistanceMeters.toFixed(0)}m)`;
+          if (safeBadge && this._lastSafeText !== text) {
+            this._lastSafeText = text;
             safeBadge.className = 'safe-badge badge-danger';
-            safeBadge.innerHTML = `⚠️ رعایت نکردن فاصله ایمن! (${currentDistanceMeters}m / حداقل استاندارد: ${safeDistanceMeters.toFixed(1)}m)`;
+            safeBadge.textContent = text;
           }
 
           // Sound alert cooldown
@@ -158,22 +184,24 @@
           if (now - this.lastTailgateWarningTime > 2800) {
             this.lastTailgateWarningTime = now;
             this.recordViolation('عدم رعایت فاصله طولی ایمن (قانون ۲ ثانیه)');
-            if (this.game?.triggerNearMissBanner) {
-              this.showHazardAlert('⚠️ اخطار: فاصله طولی ایمن را رعایت کنید!');
-            }
+            this.showHazardAlert('اخطار: رعایت فاصله طولی ایمن ۲ ثانیه!');
           }
         } else {
           this.safeDistanceAdherenceTimer += delta;
-          if (safeBadge) {
+          const text = `فاصله ایمن: ${currentDistanceMeters}m (استاندارد: ${safeDistanceMeters.toFixed(0)}m)`;
+          if (safeBadge && this._lastSafeText !== text) {
+            this._lastSafeText = text;
             safeBadge.className = 'safe-badge badge-safe';
-            safeBadge.innerHTML = `✅ فاصله ایمن: ${currentDistanceMeters}m (استاندارد: ${safeDistanceMeters.toFixed(1)}m)`;
+            safeBadge.textContent = text;
           }
         }
       } else {
         this.safeDistanceAdherenceTimer += delta;
-        if (safeBadge) {
+        const text = 'مسیر پیش‌رو باز و ایمن است';
+        if (safeBadge && this._lastSafeText !== text) {
+          this._lastSafeText = text;
           safeBadge.className = 'safe-badge badge-safe';
-          safeBadge.innerHTML = `✅ مسیر پیش‌رو باز و ایمن است`;
+          safeBadge.textContent = text;
         }
       }
     }
@@ -308,41 +336,37 @@
 
     renderRoadOverlay(ctx, player) {
       if (!this.enabled || !this.nearestAheadVehicle || !player) return;
+      if (this.game && this.game.lowSpecMode) return; // Skip in high-fps low-spec mode
 
       const v = this.nearestAheadVehicle;
       const weather = this.game ? this.game.weather : 'night';
       const safeThreshold = SimUtils.computeSafeDistanceThreshold(player.speed, weather);
       const dy = player.y - v.y;
 
-      if (dy > 40 && dy < safeThreshold.safeDistancePx * 1.5) {
+      if (dy > 40 && dy < safeThreshold.safeDistancePx * 1.4) {
         const isDangerous = dy < safeThreshold.safeDistancePx * 0.65;
         const color = isDangerous ? '#ff0055' : (dy < safeThreshold.safeDistancePx ? '#ffbb00' : '#00ff88');
 
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([8, 6]);
-
-        // Draw dynamic safe-distance boundary box on asphalt
-        const boxW = v.width + 36;
+        // Draw crisp hardware-accelerated boundary brackets (zero font allocations!)
+        const boxW = v.width + 24;
         const topY = v.y + v.length * 0.5 + 4;
-        const bracketH = Math.min(dy - 10, safeThreshold.safeDistancePx);
+        const bracketH = Math.min(dy - 12, safeThreshold.safeDistancePx);
+        const leftX = v.x - boxW * 0.5;
 
-        ctx.strokeRect(v.x - boxW * 0.5, topY, boxW, bracketH);
+        ctx.fillStyle = isDangerous ? 'rgba(255, 0, 85, 0.14)' : 'rgba(0, 255, 136, 0.08)';
+        ctx.fillRect(leftX, topY, boxW, bracketH);
 
-        // Fill subtle translucent tint
-        ctx.fillStyle = isDangerous ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.08)';
-        ctx.fillRect(v.x - boxW * 0.5, topY, boxW, bracketH);
-
-        // Safe zone label
-        ctx.setLineDash([]);
         ctx.fillStyle = color;
-        ctx.font = 'bold 11px "Orbitron", "Vazirmatn", sans-serif';
-        ctx.textAlign = 'center';
-        const label = isDangerous ? '⚠️ محدوده خطر (Tailgating)' : `حریم ایمن ۲ ثانیه (${Math.round(dy / 3.2)}m)`;
-        ctx.fillText(label, v.x, topY + bracketH * 0.5 + 4);
+        // Corner markers
+        ctx.fillRect(leftX, topY, 8, 2);
+        ctx.fillRect(leftX, topY, 2, 8);
+        ctx.fillRect(leftX + boxW - 8, topY, 8, 2);
+        ctx.fillRect(leftX + boxW - 2, topY, 2, 8);
 
-        ctx.restore();
+        ctx.fillRect(leftX, topY + bracketH - 2, 8, 2);
+        ctx.fillRect(leftX, topY + bracketH - 8, 2, 8);
+        ctx.fillRect(leftX + boxW - 8, topY + bracketH - 2, 8, 2);
+        ctx.fillRect(leftX + boxW - 2, topY + bracketH - 8, 2, 8);
       }
     }
 

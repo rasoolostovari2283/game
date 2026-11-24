@@ -1929,26 +1929,29 @@ html, body {
   font-size: 0.8rem;
 }
 
-/* Serious HUD Elements */
+/* Serious HUD Elements (Zero backdrop-filter for rock-solid 60 FPS!) */
 .hud-serious-overlay {
   position: absolute;
-  top: 76px;
-  left: 18px;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 12;
+  flex-direction: row;
+  gap: 10px;
+  z-index: 15;
   pointer-events: none;
+  width: auto;
+  max-width: 90vw;
+  justify-content: center;
 }
 
 .serious-hud-card {
-  background: rgba(10, 15, 29, 0.88);
-  border: 1px solid rgba(0, 255, 136, 0.3);
-  border-radius: 10px;
-  padding: 8px 12px;
-  min-width: 210px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(10, 15, 29, 0.94);
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  min-width: 170px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
 }
 
 .serious-hud-title {

@@ -115,7 +115,7 @@ class GameEngine {
     this.slowmoTime = 0;
     this.ghostTrailTimer = 0;
 
-    this.cameraMode = 'cam-2d'; // cam-2d, cam-3d-out, cam-3d-in
+    this.cameraMode = 'cam-3d-out'; // cam-3d-out (default 3D pseudo-racing), cam-2d, cam-3d-in
     this.roadOffset = 0;
     this.bgOffset = 0;
     this.lastTime = 0;
@@ -193,6 +193,13 @@ class GameEngine {
     }
     const perfToggle = document.getElementById('perf-toggle');
     if (perfToggle) perfToggle.classList.toggle('on', this.lowSpecMode);
+
+    const hudPerfBtn = document.getElementById('btn-hud-perf');
+    if (hudPerfBtn) {
+      hudPerfBtn.style.color = this.lowSpecMode ? '#00ff88' : '#fff';
+      hudPerfBtn.style.borderColor = this.lowSpecMode ? '#00ff88' : 'rgba(255,255,255,0.3)';
+      hudPerfBtn.style.boxShadow = this.lowSpecMode ? '0 0 12px rgba(0,255,136,0.6)' : 'none';
+    }
   }
 
   setGameState(state) {
@@ -566,6 +573,20 @@ class GameEngine {
             matched = true;
           }
         }
+        // Turbo 60FPS Performance Mode toggle: KeyL, Persian 'م'
+        if (code === 'KeyL' || key === 'l' || key === 'م' || keyCode === 76) {
+          this.setLowSpecMode(!this.lowSpecMode);
+          const isFast = this.lowSpecMode;
+          if (window.particleSystem?.addFloatingText && this.player) {
+            window.particleSystem.addFloatingText(
+              isFast ? '⚡ حالت توربو: فعال (حداکثر فریم ۶۰+ FPS)' : '🎨 حالت گرافیک استاندارد: فعال',
+              this.player.x,
+              this.player.y - 50,
+              isFast ? '#00ff88' : '#00f2ff'
+            );
+          }
+          matched = true;
+        }
       }
 
       if (matched && (this.gameState === 'playing' || this.gameState === 'paused')) {
@@ -650,17 +671,25 @@ class GameEngine {
     if (!wrapper) return;
 
     wrapper.classList.remove(this.cameraMode);
-    if (this.cameraMode === 'cam-2d') {
-      this.cameraMode = 'cam-3d-out';
-      dashboard?.classList.add('hidden');
-    } else if (this.cameraMode === 'cam-3d-out') {
-      this.cameraMode = 'cam-3d-in';
-      dashboard?.classList.remove('hidden');
-    } else {
+    let cameraName = '';
+    if (this.cameraMode === 'cam-3d-out') {
       this.cameraMode = 'cam-2d';
       dashboard?.classList.add('hidden');
+      cameraName = '🎥 دوربین: دید کلاسیک ۲ بعدی از بالا (2D Top-Down)';
+    } else if (this.cameraMode === 'cam-2d') {
+      this.cameraMode = 'cam-3d-in';
+      dashboard?.classList.remove('hidden');
+      cameraName = '🎥 دوربین: دید از داخل کابین راننده (Cockpit 3D)';
+    } else {
+      this.cameraMode = 'cam-3d-out';
+      dashboard?.classList.add('hidden');
+      cameraName = '🎥 دوربین: دید سوم‌شخص سه‌بعدی آرکید (3D Arcade)';
     }
     wrapper.classList.add(this.cameraMode);
+
+    if (window.particleSystem?.addFloatingText && this.player) {
+      window.particleSystem.addFloatingText(cameraName, this.player.x, this.player.y - 60, '#00f2ff');
+    }
   }
 
   honkHorn() {
@@ -2104,6 +2133,19 @@ class GameEngine {
 
     document.getElementById('btn-hud-cam')?.addEventListener('click', () => {
       this.cycleCameraMode();
+    });
+
+    document.getElementById('btn-hud-perf')?.addEventListener('click', () => {
+      this.setLowSpecMode(!this.lowSpecMode);
+      const isFast = this.lowSpecMode;
+      if (window.particleSystem?.addFloatingText && this.player) {
+        window.particleSystem.addFloatingText(
+          isFast ? '⚡ حالت توربو: فعال (حداکثر فریم ۶۰+ FPS)' : '🎨 حالت گرافیک استاندارد: فعال',
+          this.player.x,
+          this.player.y - 50,
+          isFast ? '#00ff88' : '#00f2ff'
+        );
+      }
     });
 
     document.getElementById('btn-resume')?.addEventListener('click', () => {

@@ -14,7 +14,7 @@
 
   <div id="app-container">
     <!-- Main 60FPS Game Canvas with 3D wrapper -->
-    <div id="canvas-3d-wrapper" class="cam-2d">
+    <div id="canvas-3d-wrapper" class="cam-3d-out">
       <canvas id="game-canvas" tabindex="0"></canvas>
     </div>
 
@@ -48,6 +48,7 @@
             <span style="font-size:0.7rem; color:var(--text-dim)">مسافت: <span id="hud-dist-val" style="color:#fff; font-family:var(--font-arcade)">0.0 km</span></span>
           </div>
           <button id="btn-hud-cam" class="hud-pause-btn" tabindex="-1" aria-label="تغییر دوربین" style="margin-right: 8px;">🎥</button>
+          <button id="btn-hud-perf" class="hud-pause-btn" tabindex="-1" aria-label="حالت عملکرد توربو 60FPS" title="تغییر حالت گرافیک توربو / سبک (L)" style="margin-right: 6px;">⚡</button>
           <button id="btn-hud-pause" class="hud-pause-btn" tabindex="-1" aria-label="توقف">⏸</button>
         </div>
       </div>
