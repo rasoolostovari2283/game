@@ -83,7 +83,8 @@ class GameEngine {
     this.isEndless = false;
     this.heatLevel = 0;
 
-    this.gameMode = 'one_way'; // 'one_way', 'two_way', 'speed_bomb'
+    this.gameMode = 'one_way'; // 'one_way', 'two_way', 'speed_bomb', 'serious_test'
+    this.seriousManager = window.SeriousDrivingManager ? new window.SeriousDrivingManager(this) : null;
     this.weather = 'night'; // 'night', 'rain', 'sunset'
     this.userSelectedWeather = 'night';
     this.gameState = 'menu'; // 'menu', 'playing', 'paused', 'game_over', 'garage', 'stage_clear'
@@ -733,6 +734,9 @@ class GameEngine {
     }
 
     this.gameMode = mode;
+    if (this.seriousManager) {
+      this.seriousManager.startSession(this.gameMode);
+    }
     this.setGameState('playing');
     this.isEndless = isEndless;
     this.currentStageIndex = (stageIndex !== undefined) ? stageIndex : 0;
@@ -911,8 +915,69 @@ class GameEngine {
       const tag = document.getElementById('new-record-tag');
       if (tag) tag.style.display = isNewRecord ? 'inline-block' : 'none';
 
+      // Auto-open diagnostic report if in serious driving test mode
+      if (this.gameMode === 'serious_test') {
+        setTimeout(() => this.openDiagnosticReport(), 400);
+      }
+
       this.updateMenuStats();
     }, 650);
+  }
+
+  openDiagnosticReport() {
+    if (!this.seriousManager) return;
+    const rep = this.seriousManager.compileFinalReport();
+    const modal = document.getElementById('serious-report-modal');
+    if (!modal) return;
+
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    setTxt('rep-student-name', 'رسول استواری (تیم توسعه)');
+    setTxt('rep-date', rep.date);
+    setTxt('rep-duration', Math.floor(rep.totalDrivingDurationSec / 60) + ' دقیقه و ' + (rep.totalDrivingDurationSec % 60) + ' ثانیه');
+    setTxt('rep-distance', rep.distanceKm + ' کیلومتر');
+    setTxt('rep-weather', rep.weather === 'rain' ? 'بارانی و لغزنده (آسفالت خیس)' : (rep.weather === 'sunset' ? 'غروب آفتاب' : 'شب تاریک اتوبان'));
+    const currentCar = this.player.carData || window.carManager?.getCurrentCar();
+    setTxt('rep-car-name', currentCar?.name || 'Cyber Hatch');
+
+    setTxt('rep-final-score', rep.safetyScore);
+    setTxt('rep-grade-badge', rep.gradeLetter);
+    setTxt('rep-rating-title', rep.ratingTitle);
+
+    setTxt('rep-avg-reaction', rep.avgReactionMs + ' ms');
+    setTxt('rep-safe-distance-pct', rep.safeDistanceAdherence + '%');
+    setTxt('rep-stopping-calc', `مسافت توقف در ${Math.round(this.player.speed)}km/h: ${rep.physicsStopping.totalStoppingDistanceM}m (عکس‌العمل: ${rep.physicsStopping.reactionDistanceM}m + ترمز: ${rep.physicsStopping.brakingDistanceM}m)`);
+    setTxt('rep-hazard-rate', rep.hazardSuccessRate + '%');
+    setTxt('rep-hazards-count', `${rep.hazardsDetected} از ${rep.hazardsTotal} خطر به موقع مدیریت شد`);
+    setTxt('rep-eco-score', rep.ecoAvg + '%');
+
+    const tbody = document.getElementById('rep-hazards-tbody');
+    if (tbody) {
+      if (rep.hazardHistory && rep.hazardHistory.length > 0) {
+        tbody.innerHTML = rep.hazardHistory.map((h, idx) => `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${h.type}</td>
+            <td>${typeof h.reactionMs === 'number' ? h.reactionMs + ' ms' : h.reactionMs}</td>
+            <td>${h.success ? '<span style="color:#00ff88; font-weight:700;">✅ مدیریت به‌موقع</span>' : '<span style="color:#ff3366; font-weight:700;">❌ تأخیر در واکنش</span>'}</td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = `
+          <tr>
+            <td>۱</td>
+            <td>شبیه‌سازی رانندگی پیوسته و تدافعی</td>
+            <td>${rep.avgReactionMs} ms</td>
+            <td><span style="color:#00ff88; font-weight:700;">✅ وضعیت استاندارد</span></td>
+          </tr>
+        `;
+      }
+    }
+
+    modal.classList.remove('hidden');
   }
 
   update(rawDelta) {
@@ -1148,6 +1213,9 @@ class GameEngine {
 
     // 4. Update Traffic, Hazards & Particles
     this.traffic.update(this.player.speed, this.player.y, delta, this.heatLevel, this.player.x);
+    if (this.seriousManager) {
+      this.seriousManager.update(delta, this.player, this.traffic.vehicles, this.keys);
+    }
     window.particleSystem.update(
       this.player.speed * 0.18,
       this.player.speed,
@@ -1522,6 +1590,11 @@ class GameEngine {
 
     // 3. Highway Asphalt, Neon Edge Reflections & Lane Markings (Zero Clip Overdraw!)
     this.renderRoad(ctx, height);
+
+    // 3b. Serious Mode Safe Following Distance Overlay
+    if (this.seriousManager) {
+      this.seriousManager.renderRoadOverlay(ctx, this.player);
+    }
 
     // 4. Particles & Weather
     window.particleSystem.render(ctx, this.player.isNitroActive);
@@ -1948,6 +2021,10 @@ class GameEngine {
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.gameMode = btn.dataset.mode;
+        const seriousNotice = document.getElementById('serious-mode-notice');
+        if (seriousNotice) {
+          seriousNotice.style.display = (this.gameMode === 'serious_test') ? 'block' : 'none';
+        }
       });
     });
 
@@ -1995,6 +2072,18 @@ class GameEngine {
 
     document.getElementById('btn-restart')?.addEventListener('click', () => {
       this.startGame(this.gameMode, 0, false);
+    });
+
+    document.getElementById('btn-view-diagnostic-report')?.addEventListener('click', () => {
+      this.openDiagnosticReport();
+    });
+
+    document.getElementById('btn-close-report')?.addEventListener('click', () => {
+      document.getElementById('serious-report-modal')?.classList.add('hidden');
+    });
+
+    document.getElementById('btn-print-report')?.addEventListener('click', () => {
+      window.print();
     });
 
     document.getElementById('btn-go-garage')?.addEventListener('click', () => {

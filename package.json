@@ -7,8 +7,8 @@
     "dev": "node server.js",
     "start": "node server.js",
     "test": "node --test",
-    "build": "node --check server.js && node --check js/sim-utils.js && node --check js/audio.js && node --check js/particles.js && node --check js/cars.js && node --check js/traffic.js && node --check js/missions.js && node --check js/game.js",
-    "lint": "node --check server.js && node --check js/sim-utils.js && node --check js/audio.js && node --check js/particles.js && node --check js/cars.js && node --check js/traffic.js && node --check js/missions.js && node --check js/game.js",
+    "build": "node --check server.js && node --check js/sim-utils.js && node --check js/serious-mode.js && node --check js/audio.js && node --check js/particles.js && node --check js/cars.js && node --check js/traffic.js && node --check js/missions.js && node --check js/game.js",
+    "lint": "node --check server.js && node --check js/sim-utils.js && node --check js/serious-mode.js && node --check js/audio.js && node --check js/particles.js && node --check js/cars.js && node --check js/traffic.js && node --check js/missions.js && node --check js/game.js",
     "pack": "electron-packager . NeonHighway --platform=win32 --arch=x64 --out=dist --overwrite"
   },
   "keywords": [

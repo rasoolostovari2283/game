@@ -7,7 +7,11 @@ const {
   computeHeatLevel,
   checkBoxOverlap,
   isNearMiss,
-  findAlphaBounds
+  findAlphaBounds,
+  computeStoppingDistance,
+  computeSafeDistanceThreshold,
+  computeEcoTelemetry,
+  evaluateDriverSafetyGrade
 } = require('./js/sim-utils.js');
 
 test('clampDelta caps large frame spikes and guards invalid inputs', () => {
@@ -68,4 +72,63 @@ test('findAlphaBounds tightly crops non-transparent car silhouette', () => {
 
   const bounds = findAlphaBounds(data, w, h, 20);
   assert.deepEqual(bounds, { x: 3, y: 2, width: 4, height: 7, empty: false });
+});
+
+test('computeStoppingDistance reflects physics reaction and wet road friction', () => {
+  const dry100 = computeStoppingDistance(100, 'night', 0.8);
+  assert.equal(dry100.speedMs, 27.8);
+  assert.equal(dry100.frictionCoeff, 0.80);
+  assert.ok(dry100.totalStoppingDistanceM > 60 && dry100.totalStoppingDistanceM < 85);
+
+  const wet100 = computeStoppingDistance(100, 'rain', 0.8);
+  assert.equal(wet100.frictionCoeff, 0.42);
+  assert.ok(wet100.totalStoppingDistanceM > dry100.totalStoppingDistanceM * 1.3);
+});
+
+test('computeSafeDistanceThreshold enforces 2-second and 3.6-second rain rules', () => {
+  const drySafe = computeSafeDistanceThreshold(108, 'night');
+  assert.equal(drySafe.timeGapSec, 2.0);
+  assert.equal(drySafe.safeDistanceM, 60.0);
+  assert.ok(drySafe.safeDistancePx >= 190);
+
+  const rainSafe = computeSafeDistanceThreshold(108, 'rain');
+  assert.equal(rainSafe.timeGapSec, 3.6);
+  assert.equal(rainSafe.safeDistanceM, 108.0);
+  assert.ok(rainSafe.safeDistancePx > drySafe.safeDistancePx);
+});
+
+test('computeEcoTelemetry rewards cruising and penalizes harsh nitro/revs', () => {
+  const cruise = computeEcoTelemetry(90, 2400, false, false, false);
+  assert.ok(cruise.ecoScore >= 90);
+  assert.ok(cruise.fuelRateL100 < 6.0);
+
+  const aggressive = computeEcoTelemetry(40, 6200, true, false, false);
+  assert.ok(aggressive.ecoScore <= 45);
+
+  const nitro = computeEcoTelemetry(220, 7500, true, false, true);
+  assert.equal(nitro.ecoScore, 15);
+  assert.ok(nitro.fuelRateL100 > 20);
+});
+
+test('evaluateDriverSafetyGrade calculates comprehensive academic score and rating', () => {
+  const excellent = evaluateDriverSafetyGrade({
+    reactionTimes: [280, 310, 290],
+    safeDistanceAdherencePct: 95,
+    ecoScoreAvg: 88,
+    hazardsDetected: 4,
+    hazardsTotal: 4,
+    violationsCount: 0
+  });
+  assert.ok(excellent.safetyScore >= 90);
+  assert.equal(excellent.gradeLetter, 'A+');
+
+  const flawed = evaluateDriverSafetyGrade({
+    reactionTimes: [680, 750],
+    safeDistanceAdherencePct: 40,
+    ecoScoreAvg: 45,
+    hazardsDetected: 1,
+    hazardsTotal: 3,
+    violationsCount: 5
+  });
+  assert.ok(flawed.safetyScore < 60);
 });

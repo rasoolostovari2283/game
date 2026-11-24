@@ -159,6 +159,21 @@
       <div id="mission-popup-banner">🏆 مأموریت انجام شد!</div>
       <div id="police-alert-banner" style="display:none; position:absolute; top:20%; left:50%; transform:translateX(-50%); font-family:var(--font-persian); font-size:1.15rem; font-weight:900; background:linear-gradient(90deg, #ff0033, #0066ff); color:#fff; padding:8px 24px; border-radius:14px; box-shadow:0 0 25px rgba(255,0,50,0.8); z-index:10;">🚨 هشدار: گشت پلیس در تعقیب شماست!</div>
       <div id="speed-bomb-alert" style="display:none; position:absolute; top:25%; left:50%; transform:translateX(-50%); font-family:var(--font-arcade); font-size:1.3rem; font-weight:900; background:rgba(0,0,0,0.7); padding:6px 20px; border-radius:12px; border:1px solid red;">💣 BOMB: 10.0s</div>
+      <div id="serious-hazard-banner" class="serious-hazard-popup" style="display:none;"></div>
+
+      <!-- Serious Driving Live Telemetry Overlay -->
+      <div id="hud-serious-panel" class="hud-serious-overlay" style="display:none;">
+        <div class="serious-hud-card">
+          <div class="serious-hud-title">🌱 رانندگی سبز (ECO): <span id="hud-eco-val" style="color:#00ff88;">90%</span></div>
+          <div class="serious-bar-outer"><div id="hud-eco-bar" class="serious-bar-inner" style="width:90%;"></div></div>
+          <div id="hud-eco-status" class="serious-hud-sub">رانندگی بهینه و کم‌مصرف</div>
+        </div>
+
+        <div class="serious-hud-card">
+          <div class="serious-hud-title">⚡ آخرین عکس‌العمل: <span id="hud-last-reaction-ms" style="color:#00e5ff;">--</span></div>
+          <div id="hud-safe-distance-badge" class="safe-badge badge-safe">✅ مسیر پیش‌رو باز و ایمن است</div>
+        </div>
+      </div>
 
       <!-- Speedometer, Cyber Energy, Health & Nitro (Zero Overlap Cluster) -->
       <div class="hud-bottom-gauges">
@@ -222,11 +237,20 @@
         </div>
 
         <!-- Game Mode Selection -->
-        <span class="section-label">حالت مسابقه:</span>
+        <span class="section-label">حالت مسابقه و آزمون:</span>
         <div class="mode-selector">
           <button class="mode-btn active" data-mode="one_way">یک‌طرفه</button>
           <button class="mode-btn" data-mode="two_way">دو‌طرفه (امتیاز x2.5)</button>
           <button class="mode-btn" data-mode="speed_bomb">بمب سرعت</button>
+          <button class="mode-btn mode-btn-serious" data-mode="serious_test" style="border-color:#00ff88; color:#00ff88; font-weight:700;">🎓 آزمون رانندگی جدی (Serious Game)</button>
+        </div>
+
+        <!-- Serious Mode Highlight Card -->
+        <div id="serious-mode-notice" class="serious-notice-card" style="display:none;">
+          <div class="serious-notice-title">🎓 حالت اختصاصی بازی جدی (Serious Game):</div>
+          <div class="serious-notice-desc">
+            این حالت جهت سنجش علمی زمان عکس‌العمل (Reaction Time)، رعایت قانون ۲ ثانیه فاصله طولی ایمن، ادراک خطرات ترافیکی و رانندگی سبز (Eco-Driving) با صدور کارنامه رسمی تحلیلی برای ارائه به استاد طراحی شده است.
+          </div>
         </div>
 
         <!-- Weather / Atmosphere Selection -->
@@ -391,6 +415,10 @@
           <span>شروع مجدد</span>
         </button>
 
+        <button id="btn-view-diagnostic-report" class="btn-primary" style="background:linear-gradient(135deg, #00b09b, #96c93d); border-color:#00ff88; box-shadow:0 0 18px rgba(0,255,136,0.35);">
+          <span>📋 مشاهده و چاپ کارنامه ارزیابی رانندگی (نسخه استاد)</span>
+        </button>
+
         <button id="btn-go-garage" class="btn-secondary">
           <span>رفتن به گاراژ و ارتقا</span>
         </button>
@@ -398,6 +426,116 @@
         <button id="btn-go-home" class="btn-secondary">
           <span>منوی اصلی</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Screen 6: Academic Serious Driving Diagnostic Report (Printable) -->
+    <div id="serious-report-modal" class="screen-overlay hidden" style="z-index: 1000; overflow-y:auto; padding:20px 10px;">
+      <div class="menu-card diagnostic-report-sheet">
+        <!-- printable header -->
+        <div class="report-header">
+          <div class="report-university-badge">
+            <div class="uni-title">دانشگاه — دانشکده مهندسی کامپیوتر و فناوری اطلاعات</div>
+            <div class="course-title">پروژه پایان‌ترم درس مبانی بازی‌سازی رایانه‌ای</div>
+          </div>
+          <div class="report-main-title">
+            <h2>📋 کارنامه تخصصی ارزیابی رانندگی تدافعی و رفتار ترافیکی</h2>
+            <div class="report-subtitle">SafeDrive AI — Serious Driving Simulation & Telemetry Report</div>
+          </div>
+        </div>
+
+        <div class="report-meta-grid">
+          <div class="meta-item"><span>👤 ارزیابی‌شونده:</span> <strong id="rep-student-name">کاربر شبیه‌ساز</strong></div>
+          <div class="meta-item"><span>📅 تاریخ آزمون:</span> <strong id="rep-date">--</strong></div>
+          <div class="meta-item"><span>⏱️ مدت آزمون:</span> <strong id="rep-duration">--</strong></div>
+          <div class="meta-item"><span>🛣️ مسافت پیموده شده:</span> <strong id="rep-distance">--</strong></div>
+          <div class="meta-item"><span>🌦️ شرایط جوی:</span> <strong id="rep-weather">--</strong></div>
+          <div class="meta-item"><span>🚗 خودرو:</span> <strong id="rep-car-name">--</strong></div>
+        </div>
+
+        <div class="report-grade-banner">
+          <div class="grade-circle" id="rep-grade-badge">A+</div>
+          <div class="grade-info">
+            <div class="grade-score-row">نمره نهایی صلاحیت رانندگی: <span id="rep-final-score">94</span> از ۱۰۰</div>
+            <div class="grade-title-row" id="rep-rating-title">راننده فوق‌حرفه‌ای و تدافعی (Master Defensive Driver)</div>
+          </div>
+        </div>
+
+        <!-- 4 Core Competency Boxes -->
+        <div class="report-competency-grid">
+          <div class="comp-card">
+            <div class="comp-icon">⚡</div>
+            <div class="comp-title">زمان عکس‌العمل (Reaction Time)</div>
+            <div class="comp-val" id="rep-avg-reaction">310 ms</div>
+            <div class="comp-desc">استاندارد جهانی انسان سالم: ۲۵۰ تا ۴۵۰ میلی‌ثانیه</div>
+          </div>
+
+          <div class="comp-card">
+            <div class="comp-icon">📏</div>
+            <div class="comp-title">رعایت فاصله طولی (قانون ۲ ثانیه)</div>
+            <div class="comp-val" id="rep-safe-distance-pct">92%</div>
+            <div class="comp-desc" id="rep-stopping-calc">مسافت توقف فیزیکی در سرعت فعلی: 68 متر</div>
+          </div>
+
+          <div class="comp-card">
+            <div class="comp-icon">🎯</div>
+            <div class="comp-title">ادراک خطرات (Hazard Perception)</div>
+            <div class="comp-val" id="rep-hazard-rate">100%</div>
+            <div class="comp-desc" id="rep-hazards-count">۴ خطر از ۴ خطر پیش‌رو به موقع دفع شد</div>
+          </div>
+
+          <div class="comp-card">
+            <div class="comp-icon">🌱</div>
+            <div class="comp-title">شاخص رانندگی سبز (Eco-Driving)</div>
+            <div class="comp-val" id="rep-eco-score">88%</div>
+            <div class="comp-desc">کاهش ۱۸٪ مصرف سوخت و آلایندگی نسبت به رانندگی پرخاشگرانه</div>
+          </div>
+        </div>
+
+        <!-- Violations and Hazards Table -->
+        <div class="report-section-title">📊 لاگ رویدادهای ادراک خطر و خطاهای ترافیکی:</div>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>ردیف</th>
+                <th>رویداد / خطر ترافیکی</th>
+                <th>زمان عکس‌العمل</th>
+                <th>وضعیت</th>
+              </tr>
+            </thead>
+            <tbody id="rep-hazards-tbody">
+              <tr>
+                <td>۱</td>
+                <td>ترمز ناگهانی خودروی جلو</td>
+                <td>۳۱۰ میلی‌ثانیه</td>
+                <td><span style="color:#00ff88;">✅ دفع به‌موقع</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Academic Team & Supervisor Signatures -->
+        <div class="report-signatures">
+          <div class="sig-box">
+            <div class="sig-title">👥 اعضای تیم توسعه (پروژه مبانی بازی‌سازی):</div>
+            <div class="sig-names">رسول استواری • احسان کاظمی • مریم ناظم‌سادات • هانیه کاویانی</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-title">✍️ تاییدیه و نظر استاد محترم راهنما:</div>
+            <div class="sig-placeholder">محل امضا و نمره استاد: .......................................</div>
+          </div>
+        </div>
+
+        <!-- Modal Action Buttons (Hidden on Print) -->
+        <div class="report-actions no-print">
+          <button id="btn-print-report" class="btn-primary" style="background:linear-gradient(135deg, #00c6ff, #0072ff);">
+            <span>🖨️ چاپ رسمی کارنامه (Print / PDF)</span>
+          </button>
+          <button id="btn-close-report" class="btn-secondary">
+            <span>بستن کارنامه</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -539,6 +677,7 @@
   <script src="js/cars.js"></script>
   <script src="js/traffic.js"></script>
   <script src="js/missions.js"></script>
+  <script src="js/serious-mode.js"></script>
   <script src="js/game.js"></script>
 
   <!-- Clear all stale caches and unregister service workers safely -->
