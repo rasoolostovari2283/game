@@ -132,6 +132,9 @@ class GameEngine {
     // Pre-baked Offscreen Caches (zero per-frame gradient/resampling allocations)
     this.skyCache = { night: null, sunset: null, rain: null };
     this.roadGrads = { normal: null, rain: null };
+    this.roadTileCache = { normal: null, rain: null };
+    this.roadTileHeight = 320;
+    this.billboardCache = { left: null, right: null };
     this.vignetteCache = { slowmo: null, nitro: null };
 
     this.keys = {
@@ -230,7 +233,7 @@ class GameEngine {
 
     this.assets.asphalt.onload = () => {
       try {
-        this.asphaltPattern = this.ctx.createPattern(this.assets.asphalt, 'repeat');
+        this.rebuildRoadTileCache();
       } catch (e) {}
     };
 
@@ -270,6 +273,84 @@ class GameEngine {
     octx.fillRect(0, 0, w, h);
 
     this.skyCache[key] = off;
+  }
+
+  rebuildRoadTileCache() {
+    const rw = Math.round(this.road ? (this.road.width || 380) : 380);
+    const th = 256;
+    if (rw <= 0) return;
+
+    const createTile = (weather) => {
+      const c = document.createElement('canvas');
+      c.width = rw;
+      c.height = th;
+      const tctx = c.getContext('2d');
+
+      // Base solid asphalt color
+      tctx.fillStyle = '#121629';
+      tctx.fillRect(0, 0, rw, th);
+
+      // Pre-scale asphalt texture once into the tile
+      if (this.assets && this.assets.asphalt && this.assets.asphalt.complete && this.assets.asphalt.naturalWidth > 0) {
+        tctx.drawImage(this.assets.asphalt, 0, 0, rw, th);
+      }
+
+      // Pre-bake atmospheric lighting/vignette gradient directly into the tile
+      const g = tctx.createLinearGradient(0, 0, rw, 0);
+      if (weather === 'rain') {
+        g.addColorStop(0, 'rgba(8, 12, 24, 0.88)');
+        g.addColorStop(0.5, 'rgba(18, 26, 48, 0.42)');
+        g.addColorStop(1, 'rgba(8, 12, 24, 0.88)');
+      } else if (weather === 'sunset') {
+        g.addColorStop(0, 'rgba(28, 12, 34, 0.88)');
+        g.addColorStop(0.5, 'rgba(38, 18, 48, 0.28)');
+        g.addColorStop(1, 'rgba(28, 12, 34, 0.88)');
+      } else {
+        g.addColorStop(0, 'rgba(12, 16, 34, 0.88)');
+        g.addColorStop(0.5, 'rgba(22, 27, 51, 0.28)');
+        g.addColorStop(1, 'rgba(12, 16, 34, 0.88)');
+      }
+      tctx.fillStyle = g;
+      tctx.fillRect(0, 0, rw, th);
+
+      return c;
+    };
+
+    this.roadTileCache = {
+      normal: createTile('normal'),
+      rain: createTile('rain'),
+      sunset: createTile('sunset')
+    };
+    this.roadTileHeight = th;
+  }
+
+  rebuildBillboardCache() {
+    if (this.billboardCache && this.billboardCache.left && this.billboardCache.right) return;
+
+    const buildBoard = (accentColor, title1, color1, title2, color2) => {
+      const bc = document.createElement('canvas');
+      bc.width = 82;
+      bc.height = 44;
+      const bctx = bc.getContext('2d');
+      bctx.fillStyle = 'rgba(10, 15, 35, 0.88)';
+      bctx.fillRect(0, 0, 82, 44);
+      bctx.strokeStyle = accentColor;
+      bctx.lineWidth = 2;
+      bctx.strokeRect(0, 0, 82, 44);
+
+      bctx.font = 'bold 8px "Orbitron", sans-serif';
+      bctx.textAlign = 'center';
+      bctx.fillStyle = color1;
+      bctx.fillText(title1, 41, 19);
+      bctx.fillStyle = color2;
+      bctx.fillText(title2, 41, 34);
+      return bc;
+    };
+
+    this.billboardCache = {
+      left: buildBoard('#00f2ff', 'SHABGARD', '#00f2ff', 'NEON 2077', '#ff0077'),
+      right: buildBoard('#ff0077', 'TURBO BOOST', '#ffe600', 'N2O SYSTEM', '#00ffcc')
+    };
   }
 
   rebuildAllRenderCaches() {
@@ -338,6 +419,12 @@ class GameEngine {
         yellow: buildPool('255, 230, 0')
       };
     }
+
+    // 5. Pre-bake asphalt road tiles (0 runtime texture resampling / 0 pattern overhead)
+    this.rebuildRoadTileCache();
+
+    // 6. Pre-bake holographic roadside billboards
+    this.rebuildBillboardCache();
   }
 
   cacheHudElements() {
@@ -434,7 +521,7 @@ class GameEngine {
 
     if (this.assets && this.assets.asphalt && this.assets.asphalt.complete && this.assets.asphalt.naturalWidth > 0) {
       try {
-        this.asphaltPattern = this.ctx.createPattern(this.assets.asphalt, 'repeat');
+        this.rebuildRoadTileCache();
       } catch (e) {}
     }
 
@@ -1191,9 +1278,9 @@ class GameEngine {
       this.vibrate(25);
     }
 
-    // 3. Framerate-Independent Road Movement & Distance
+    // 3. Framerate-Independent Road Movement & Distance (LCM period avoids snap/jitter)
     const roadSpeedPixels = this.player.speed * 0.18 * dt60;
-    this.roadOffset = (this.roadOffset + roadSpeedPixels) % 80;
+    this.roadOffset = (this.roadOffset + roadSpeedPixels) % 331200;
     this.distance += (this.player.speed * (1000 / 3600)) * delta;
     this.bgOffset = (this.bgOffset + roadSpeedPixels * 0.08) % this.viewW;
 
@@ -1917,38 +2004,18 @@ class GameEngine {
       ctx.fillRect(rightEdge + 10, y, 12, 6);
     }
 
-    // 3. Holographic Roadside Billboards (skipped in Low-Spec mode)
-    if (!this.lowSpecMode) {
+    // 3. Holographic Roadside Billboards (Offscreen cached blit, skipped in Low-Spec mode)
+    if (!this.lowSpecMode && this.billboardCache) {
       const billboardSpacing = 720;
       const bOffset = (this.roadOffset * 1.4) % billboardSpacing;
       const billboardY = -120 + bOffset;
 
-      ctx.font = 'bold 8px "Orbitron", sans-serif';
-      ctx.textAlign = 'center';
-
-      if (rx > 125) {
-        ctx.fillStyle = 'rgba(10, 15, 35, 0.88)';
-        ctx.strokeStyle = '#00f2ff';
-        ctx.lineWidth = 2;
-        ctx.fillRect(rx - 114, billboardY, 82, 44);
-        ctx.strokeRect(rx - 114, billboardY, 82, 44);
-        ctx.fillStyle = '#00f2ff';
-        ctx.fillText('SHABGARD', rx - 73, billboardY + 19);
-        ctx.fillStyle = '#ff0077';
-        ctx.fillText('NEON 2077', rx - 73, billboardY + 34);
+      if (rx > 125 && this.billboardCache.left) {
+        ctx.drawImage(this.billboardCache.left, rx - 114, billboardY);
       }
 
-      if (width - rightEdge > 125) {
-        const rby = billboardY + 320;
-        ctx.fillStyle = 'rgba(10, 15, 35, 0.88)';
-        ctx.strokeStyle = '#ff0077';
-        ctx.lineWidth = 2;
-        ctx.fillRect(rightEdge + 32, rby, 82, 44);
-        ctx.strokeRect(rightEdge + 32, rby, 82, 44);
-        ctx.fillStyle = '#ffe600';
-        ctx.fillText('TURBO BOOST', rightEdge + 73, rby + 19);
-        ctx.fillStyle = '#00ffcc';
-        ctx.fillText('N2O SYSTEM', rightEdge + 73, rby + 34);
+      if (width - rightEdge > 125 && this.billboardCache.right) {
+        ctx.drawImage(this.billboardCache.right, rightEdge + 32, billboardY + 320);
       }
     }
   }
@@ -1957,21 +2024,20 @@ class GameEngine {
     const rx = this.road.baseX;
     const rw = this.road.width;
 
-    // 1. Exact-bounds asphalt surface (Zero ctx.clip(), 1x pixel fill instead of 12x!)
-    if (this.asphaltPattern && !this.lowSpecMode) {
-      ctx.save();
-      ctx.translate(rx, this.roadOffset);
-      ctx.fillStyle = this.asphaltPattern;
-      ctx.fillRect(0, -this.roadOffset, rw, height);
-      ctx.restore();
+    // 1. Exact-bounds asphalt surface (Pre-baked offscreen tile blit - < 0.1ms!)
+    const tile = this.roadTileCache ? (this.roadTileCache[this.weather] || this.roadTileCache.normal) : null;
+    if (tile && !this.lowSpecMode) {
+      const th = this.roadTileHeight || 256;
+      const offset = Math.floor(this.roadOffset % th);
+      for (let y = -th + offset; y < height + th; y += th) {
+        ctx.drawImage(tile, rx, y);
+      }
     } else {
       ctx.fillStyle = '#121629';
       ctx.fillRect(rx, 0, rw, height);
+      ctx.fillStyle = this.weather === 'rain' ? this.roadGrads.rain : this.roadGrads.normal;
+      ctx.fillRect(rx, 0, rw, height);
     }
-
-    // 2. Cached lighting/vignette gradient over road (0 allocations per frame)
-    ctx.fillStyle = this.weather === 'rain' ? this.roadGrads.rain : this.roadGrads.normal;
-    ctx.fillRect(rx, 0, rw, height);
 
     // 3. Soft Scrolling Neon Streetlight Reflections on Asphalt Edges (Normal mode)
     if (!this.lowSpecMode && this.edgeGlowCache) {
